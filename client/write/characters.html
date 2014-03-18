@@ -1,0 +1,15 @@
+<template name="characters">
+	<h4>Characters</h4>
+	{{#each characters}}
+		<div class="row-fluid">
+			<div class="col-xs-5">{{this}}</div>
+			<button class="btn btn-danger del_character" character="{{this}}">X</button>
+		</div>
+	{{/each}}
+	<div class="row-fluid">
+		<form id="character_form" role="form">
+			<input id="new_character" type="text">
+			<input class="btn btn-success" id="add_character" type="submit" val="add">
+		</form>
+	</div>
+</template>

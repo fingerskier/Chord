@@ -1,0 +1,26 @@
+<template name="story_list">
+	{{#if currentUser}}
+		<div class="panel panel-warning">
+		  <div class="panel-heading">
+		  	<h2>My Stories</h2>
+		  </div>
+		  
+		  <div class="panel-body">
+		    <ul>
+		    	{{#each stories}}
+			    	<li>
+			    		<div class="col-xs-7">{{name}}</div>
+			    		<a class="btn btn-primary" href="/read/{{_id}}">read</a>
+			    		<a class="btn btn-primary" href="/write/{{_id}}">write</a>
+			    	</li>
+			    {{/each}}
+
+		    	<li>
+		    		<input id="story_name" type="text">
+		    		<button class="btn btn-success" id="add_story">Add a Story</button>
+		    	</li>
+		    </ul>
+		  </div>
+		</div>
+	{{/if}}
+</template>

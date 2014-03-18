@@ -1,0 +1,15 @@
+<template name="places">
+	<h4>places</h4>
+	{{#each places}}
+		<div class="row-fluid">
+			<div class="col-xs-5">{{this}}</div>
+			<button class="btn btn-danger del_place" place="{{this}}">X</button>
+		</div>
+	{{/each}}
+	<div class="row-fluid">
+		<form id="place_form" role="form">
+			<input id="new_place" type="text">
+			<input class="btn btn-success" id="add_place" type="submit" val="add">
+		</form>
+	</div>
+</template>

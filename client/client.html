@@ -1,16 +1,26 @@
 <head>
-	<title>App Title</title>
+	<title>Chord</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 </head>
 
 <body>
-	{{> main}}
 </body>
 
-<template name="main">
-	<header>Header</header>
-	
-	{{> fakey}}
-	
-	<footer>Footer</footer>
+<template name="layout">
+	<header class="well well-lg">
+		<h1>Chord: The Hypertext Narrative Engine</h1>
+		{{loginButtons}}
+	</header>
+
+	<div class="container-fluid">
+		{{yield}}
+	</div>
+
+	<footer class="label label-warning">{{footer}}</footer>
+</template>
+
+<template name="home">
+	<div class="row-fluid">
+		<p>Chord is a hypertext narrative engine that links together myriad characters, places, items, ideas, and events.  The author creates these things and expositions (story snippets).  The engine delivers pages for each and links them to other pages based on their content.</p>
+	</div>
 </template>

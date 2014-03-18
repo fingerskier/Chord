@@ -1,18 +1,15 @@
 /*
-	Character = {
+	Story = {
+		owner: #,
+		characters: [],
+		places: [],
+		items: [],
+		ideas: [],
+		events: []
 	}
 	
-	Place = {
+	Exposition = {
+		story: #,
+		content: ''
 	}
-	
-	Item = {
-	}
-	
-	Idea = {
-	}
-	
-	Event = {
-	}
-
-	Exposition = {}
 */
