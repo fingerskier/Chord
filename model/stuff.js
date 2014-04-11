@@ -1,41 +1,17 @@
-Stuff = new Meteor.Collection('stuff');
+// Stuff.allow({
+//   insert: function(userId, doc) {
+//     return (userId && doc.owner === userId);
+//   },
+//   update: function(userId, doc, fields, modifier) {
+//     return doc.owner === userId;
+//   },
+//   remove: function (userId, doc) {
+//     return doc.owner === userId;
+//   }
+// });
 
-// Publisher is instantiated in server/server.js
-
-Stuff.allow({
-	insert: function (userId, doc) {
-		//...
-	},
-	update: function (userId, doc, fields, modifier) {
-		//...
-	},
-	remove: function (userId, doc) {
-		//...
-	},
-	fetch: ['owner'],
-	transform: function () {
-		//...
-	}
-});
-
-Stuff.deny({
-	insert: function (userId, doc) {
-		//...
-	},
-	update: function (userId, doc, fields, modifier) {
-		//...
-	},
-	remove: function (userId, doc) {
-		//...
-	},
-	fetch: ['locked'],
-	transform: function () {
-		//...
-	}
-});
-
-Meteor.methods({
-	addStuff: function (stuffObj) {
-		// ...
-	}
-});
+// Meteor.methods({
+// 	addStuff: function (stuffObj) {
+// 		// ...
+// 	}
+// });

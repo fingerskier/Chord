@@ -1,5 +1,3 @@
-Stories = new Meteor.Collection('Stories');
-
 Stories.allow({
   insert: function(userId, doc) {
     return (userId && doc.owner === userId);
