@@ -12,4 +12,4 @@ An exposition is essentially a story snippet.  The engine will automatically lin
 
 Pages
 -----
-There pre-written, and automatically written pages.  Expositions are pre-written by the author.  Noun pages are written automatically containing links to all instances of that noun.  The timeline page shows expositions in chronological order.  Registered nouns are given as links to other pages.  In addition, links are provided to other expositions which are adjacent in time or location.  Words not defined in the database are simply shown as plain text rather than a link.
+Pages are rendered automatically based on expositions of characters and other things in the story.  Expositions are pre-written by the author.  Noun pages are written automatically containing contextual links to all instances of that noun.  The timeline page shows expositions in chronological order.  Registered nouns are rendered as links to other pages.  In addition, links are provided to other expositions which are adjacent in time or location.  Words not defined in the database are simply shown as plain text.
