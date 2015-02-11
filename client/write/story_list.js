@@ -1,6 +1,8 @@
 Template.story_list.events({
-	'click #add_story': function () {
+	'submit #new_story_form': function (event) {
 		var storyName = $('#story_name').val();
+		
+		event.preventDefault();
 		
 		Stories.insert({
 			name: storyName.length ? storyName : 'New Story',

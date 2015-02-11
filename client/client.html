@@ -10,13 +10,16 @@
 	<header class="well well-lg">
 		<h1>Chord: The Hypertext Narrative Engine</h1>
 		{{> loginButtons}}
+		{{#if currentUser}}
+			<a href="/write">My Stories</a>
+		{{/if}}
 	</header>
 
 	<div class="container-fluid">
-		{{yield}}
+		{{> yield}}
 	</div>
 
-	<footer class="label label-warning">{{footer}}</footer>
+	<!-- <footer class="label label-warning">{{footer}}</footer> -->
 </template>
 
 <template name="home">

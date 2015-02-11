@@ -1,0 +1,5 @@
+Meteor Stuff
+
+Accounts
+	Logout all accounts
+	db.users.update({}, {$set: {'services.resume.loginTokens': []}}, {multi: true});
