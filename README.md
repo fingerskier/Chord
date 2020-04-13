@@ -1,7 +1,15 @@
 Chord Engine
 ============
 Chord is a hypertext narrative engine that links together myriad characters, places, items, ideas, and events.  The author creates these things and expositions (story snippets).  The engine delivers pages for each and links them to other pages based on their content.
-	
+
+Thing	
+  ID: varchar
+  Type: varchar
+Link
+  ID: varchar
+  Blah: json
+
+
 Nouns
 -----
 Characters, places, items, ideas, and events are all objects stored in the database.  These are all treated similarly but may have distinct properties.
