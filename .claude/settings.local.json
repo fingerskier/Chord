@@ -3,7 +3,14 @@
     "allow": [
       "mcp__plugin_dude_dude__list_projects",
       "mcp__plugin_dude_dude__upsert_record",
-      "mcp__plugin_dude_dude__get_record"
+      "mcp__plugin_dude_dude__get_record",
+      "mcp__dude__list_records",
+      "mcp__dude__search",
+      "mcp__plugin_dude_dude__search",
+      "mcp__dude__get_record",
+      "mcp__dude__upsert_record",
+      "WebFetch(domain:ganelson.github.io)",
+      "WebFetch(domain:zedlopez.github.io)"
     ]
   }
 }

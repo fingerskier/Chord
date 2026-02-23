@@ -16,81 +16,88 @@ experience), **medium** (affects library authors or advanced use), or **deferrab
 
 These are gaps where SPEC.md is silent or hedges. Each needs a concrete answer.
 
-### A.1 — Storage engine commitment (deferrable)
+### A.1 — Storage engine commitment (deferrable) ✓ RESOLVED
 
 **SPEC refs:** §3.1, §4.4
+**Resolution:** See [ARCH.md — D1](ARCH.md#d1--storage-engine-libsql). Decision: **libsql**.
 
-§3.1 hedges with "such as SQLite" and §4.4 with "such as sqlite-vec." The choice of
+~~§3.1 hedges with "such as SQLite" and §4.4 with "such as sqlite-vec." The choice of
 storage engine has downstream consequences for journaled properties (§3.4),
 save/restore, and vector similarity queries, but it is ultimately an implementation
 decision. The SPEC should either commit to a specific engine or define the abstract
 capabilities the engine must provide (relational queries, vector indexing, transactional
 snapshots, journal storage) so that the choice can be made during implementation without
-revising the spec.
+revising the spec.~~
 
-### A.2 — How authors select scheduling policies (blocking)
+### A.2 — How authors select scheduling policies (blocking) ✓ RESOLVED
 
-**SPEC refs:** §6.1, §6.2
+**SPEC refs:** §6.1, §6.2, §6.3
+**Resolution:** See [SPEC.md — §6.3](../SPEC.md). Decision: **inferred scheduling**.
 
-§6.2 lists four scheduling modes (turn-based, tick-based, event-driven, continuous time)
+Authors never declare a scheduling mode. The compiler infers the required scheduling
+infrastructure from natural-language temporal expressions in rules. Turn-based is the
+zero-configuration default; clock-relative, tick-relative, and event-driven scheduling
+activate automatically when the author writes rules that need them. §6.3 covers all
+four requirements:
+
+- **Story-level default:** Turn-based, always, zero configuration (§6.3.2).
+- **Per-actor overrides:** Temporal expressions bind to specific actors (§6.3.7).
+- **Containment hierarchy:** Wall clock → turn loop → tick cycle, with event queue
+  throughout (§6.3.4).
+- **Composability rules:** Five explicit constraints with compiler enforcement (§6.3.8).
+
+~~§6.2 lists four scheduling modes (turn-based, tick-based, event-driven, continuous time)
 and says they are "composable," but provides no mechanism for an author to select or
 configure them. An author writing a story with NPC agents on a tick schedule and
-player interaction on turns has no way to express this.
+player interaction on turns has no way to express this.~~
 
-The SPEC should add a subsection (§6.3 or similar) covering:
+~~The SPEC should add a subsection (§6.3 or similar) covering:~~
 
-- **Story-level default.** How does an author declare the primary scheduling mode?
-  In natural language this might be: "This story uses tick-based scheduling."
-- **Per-actor overrides.** "Alice acts every third tick." / "The market updates once
-  per round."
-- **Containment hierarchy.** What is the nesting relationship between turns, ticks,
+~~- **Story-level default.** How does an author declare the primary scheduling mode?
+  In natural language this might be: "This story uses tick-based scheduling."~~
+~~- **Per-actor overrides.** "Alice acts every third tick." / "The market updates once
+  per round."~~
+~~- **Containment hierarchy.** What is the nesting relationship between turns, ticks,
   events, and continuous-time steps? When a turn contains multiple ticks, what
-  determines the tick count?
-- **Composability rules.** §6.2 says modes are composable but gives no constraints.
+  determines the tick count?~~
+~~- **Composability rules.** §6.2 says modes are composable but gives no constraints.
   Can an author mix continuous time and turn-based in the same region? What happens
-  at boundaries?
+  at boundaries?~~
 
-### A.3 — Natural-language syntax for temporal features (high)
+### A.3 — Natural-language syntax for temporal features (high) ✓ RESOLVED
 
-**SPEC refs:** §3.4, §6.2
+**SPEC refs:** §3.4, §6.2, §6.3
+**Resolution:** All three categories are now specified.
 
-§3.4 introduces journaled properties and §6.2 introduces event scheduling, but neither
-provides authoring syntax. An author who wants to say "the previous location of the
-player" or "in three turns, the bridge collapses" has no specified way to do so.
+- **Scheduling:** Covered by §6.3.3 (four families of temporal expression: turn-relative,
+  clock-relative, tick-relative, event-driven).
+- **Querying history:** Covered by §3.4.4 (five families of history query expression:
+  immediate previous, offset access, existential, aggregate, change detection).
+- **Journaling configuration:** Covered by §3.4.3 (the "journaled" modifier, retention
+  depth, relation journaling, journal entry contents).
 
-The SPEC should define three categories of temporal expression:
+~~§3.4 introduces journaled properties and §6.2 introduces event scheduling, but neither
+provides authoring syntax.
+An author who wants to say "the previous location of the
+player" or "in three turns, the bridge collapses" has no specified way to do so.~~
 
-- **Scheduling:** "In 3 turns, [event]." / "After 10 seconds, [event]." /
-  "Every other tick, [action]."
-- **Querying history:** "the previous location of the player" /
-  "whether trust has ever been below 3" / "the value of suspicion two turns ago"
-- **Journaling configuration:** How does an author opt a property into journaling?
+~~The SPEC should define three categories of temporal expression:~~
+
+~~- **Scheduling:** "In 3 turns, [event]." / "After 10 seconds, [event]." /
+  "Every other tick, [action]."~~
+~~- **Querying history:** "the previous location of the player" /
+  "whether trust has ever been below 3" / "the value of suspicion two turns ago"~~
+~~- **Journaling configuration:** How does an author opt a property into journaling?
   What is the default retention depth? A natural phrasing might be:
-  "The suspicion of a person is a journaled number."
+  "The suspicion of a person is a journaled number."~~
 
-### A.4 — Extension migration path (medium)
+### ~~A.4 — Extension migration path~~ (resolved)
 
-**SPEC refs:** §12.1, §9.1, §9.3
+**Decision:** Chord does not natively support Inform 7 `.i7x` extension files. The package system (§9) is the sole extension mechanism. Authors must migrate legacy extensions to Chord packages manually. A conversion tool may be provided in the future but is out of scope for the spec.
 
-§12.1 says existing Inform 7 extensions "compile without modification" but doesn't
-define what an extension structurally is in the new system, or how legacy extensions
-coexist with the new package system (§9.1). An author who has a library of Inform 7
-extensions needs to understand:
+### ~~A.5 — Package registry federation~~ (resolved)
 
-- Are legacy extensions treated as implicit single-file packages?
-- What happens on name collision between a legacy extension and a package?
-- Is there a migration tool or guide for converting extensions to packages?
-- Can a package depend on a legacy extension, or vice versa?
-
-### A.5 — Package registry federation (deferrable)
-
-**SPEC refs:** §9.1
-
-§9.1 describes "a package registry" (singular). If the ecosystem grows, authors and
-organizations will want private or domain-specific registries. The SPEC should note
-whether the registry protocol is designed to allow federation (multiple registries
-queried in priority order) even if the initial implementation is a single registry.
-This is a design-time decision that's cheap to make now and expensive to retrofit.
+**Decision:** Registries are URL-identified services, declared by authors in priority order within their project configuration. The tooling queries each registry sequentially during dependency resolution. Authentication and access control are the provider's responsibility, not the platform's. A default public registry serves the open ecosystem; authors may add private or domain-specific registries alongside it. See ARCH.md D3 for full rationale.
 
 ---
 
@@ -98,46 +105,21 @@ This is a design-time decision that's cheap to make now and expensive to retrofi
 
 These are places where SPEC.md contradicts itself. Each needs a resolution.
 
-### B.1 — "No runtime dependency" vs. FFI for embeddings (medium)
+### ~~B.1 — "No runtime dependency" vs. FFI for embeddings~~ (resolved)
 
-**SPEC refs:** §4.4, §11.2
+**Decision:** Embeddings are generated only at design time and compile time, never at runtime. External services (via FFI, §11.2) may be used during the design cycle to generate or regenerate embeddings, but the resulting vectors are baked into the compiled artifact. This eliminates the contradiction: the "no runtime dependency" guarantee in §4.4 holds without qualification. See ARCH.md D4.
 
-§4.4 states that once vectors are stored, there is "no runtime dependency on external
-services." But it also says embeddings may be "generated at runtime for dynamic content"
-via the FFI (§11.2), which by definition is an external service call.
+### ~~B.2 — Optional values vs. open-world "unknown"~~ (resolved)
 
-**Resolution:** Clarify that the no-dependency guarantee applies to *similarity queries*
-(lookups against the local vector index), not to *embedding generation* (which may
-require external services via FFI). A story that only uses precomputed embeddings has
-no runtime dependencies. A story that generates embeddings at runtime depends on
-whatever service the FFI calls — and should declare this as a capability (§11.2).
-
-### B.2 — Optional values vs. open-world "unknown" (high)
-
-**SPEC refs:** §2.3, §3.3
-
-§2.3 introduces optional values ("a property may explicitly have no value") and §3.3
-introduces open-world properties ("truth value may be unknown"). These overlap
-confusingly. Consider: if a person's "loyalty" is unset, is that "no loyalty"
-(optional/absent) or "loyalty unknown" (open-world)?
-
-**Resolution:** The SPEC should explicitly distinguish three states:
-
-- **Valued** — the property has a definite value (the normal case).
-- **Absent** — the property explicitly has no value. The author has said "X has no Y."
-  This is the optional-value feature from §2.3.
-- **Unknown** — the truth or value has not been established. The author has not said
-  anything about X's Y. This is the open-world feature from §3.3.
-
-In **closed-world** mode (the default): unset = absent. There is no "unknown."
-In **open-world** mode: unset = unknown. Absent is still available via explicit statement.
-Optionals allow absent in both modes.
-
-The natural language surface needs examples for each:
-- "The loyalty of Bob is 5." → valued
-- "Bob has no loyalty." → absent
-- (nothing said about Bob's loyalty, open-world) → unknown
-- "whether the loyalty of Bob is known" → tests for unknown
+**Decision:** The SPEC (§3.3) now distinguishes three states: valued, absent, and unknown.
+Absent is known — the author has said "X has no Y." Unknown means nothing has been said
+(open-world only). The system fails safe: conditions on unknown values evaluate to "no match"
+(the rule silently doesn't fire). The compiler provides graduated diagnostics to guide
+authors toward explicit handling when it matters. Arithmetic on unknown is a compile error;
+say phrases on unknown produce a warning. Authors can test for known-ness (`is known`,
+`is unknown`), provide defaults (`or 0 if unknown`), and suppress suggestions
+(`even if unknown`). Closed-world mode (the default) is completely unaffected.
+See [ARCH.md — D5](ARCH.md#d5--open-world-semantics-fail-safe-with-graduated-diagnostics).
 
 ### B.3 — Backward compatibility vs. enhanced type system (high)
 
@@ -149,26 +131,26 @@ change the semantics of existing code if they affect the Standard Rules. For exa
 if a built-in property becomes optional where it wasn't before, existing code that
 assumes it always has a value could break.
 
-**Resolution:** The SPEC should add a constraint: when compiling legacy Inform 7 source
-texts, the Standard Rules behave exactly as they did in Inform 7 — new type features
-do not retroactively apply to legacy kinds or properties. New type features are
-available for author-defined kinds, new packages, and Chord-native versions of the
-Standard Rules. This might mean shipping two versions of the Standard Rules (legacy-
-compatible and Chord-native) or using a compatibility flag.
+**Note:** The enhanced type system could change existing stories — not just the Standard
+Rules but any code whose semantics shift under new type features. New type features
+are employed based on language choice rather than isolated behind compatibility modes.
 
-### B.4 — Semantic output stream vs. behavioral fidelity (high)
+**Resolution:** The SPEC's backward-compatibility guarantee (§1.2, §12.2) has been
+softened: Chord aims for broad compatibility but does not guarantee exact reproduction
+of legacy behavior. Enhanced type features apply uniformly. Authors of existing stories
+should expect minor adaptation. No compatibility modes or flags are introduced — the
+type system is the type system.
+
+### ~~B.4 — Semantic output stream vs. behavioral fidelity~~ (resolved)
 
 **SPEC refs:** §8.1, §12.2
+**Resolution:** See [ARCH.md — D6](ARCH.md#d6--output-boundary-semantic-stream-only).
 
-§8.1 says the story emits a "structured semantic stream" of typed output events.
-§12.2 requires "identical behavior" to the original Inform 7/Glulx output. But the
-original output is raw text, not semantic events. These cannot both be literally true.
-
-**Resolution:** Clarify that "identical behavior" in §12.2 means identical
-*player-observable narrative content and state transitions*, not identical bytes.
-A compatibility presentation layer renders the semantic stream to plain text that is
-indistinguishable from original Glulx output for the same inputs. The semantic stream
-is the canonical output; the text rendering is a compatibility view.
+Chord produces the semantic output stream (§8.1) and nothing else. The semantic stream
+is the sole output interface — there is no built-in compatibility presentation layer.
+Reader and player applications consume the stream and decide how to render it: as
+traditional text, graphical UI, voice, or any other modality. If a reader app wants to
+approximate legacy Glulx text output, that is the reader's concern, not Chord's.
 
 ---
 
@@ -208,7 +190,7 @@ Needed:
 - Configurable memory budget for the WebAssembly runtime, with a sensible default.
 - Journaled properties: configurable retention depth (how many past values to keep).
   Default could be unlimited, but the author needs a way to say "keep only the last
-  10 values."
+  10 values." **Note:** §3.4.3 specifies configurable retention depth via "with depth N."
 - Vector indices: declared embedding dimensions. Warnings or errors when object count
   × dimension exceeds practical thresholds.
 - Clear error behavior when any limit is hit (graceful degradation, not silent
@@ -259,7 +241,10 @@ Needed:
 
 ### C.5 — No concurrency model (blocking)
 
-**SPEC refs:** §6.2, §8.4, §5.4
+**SPEC refs:** §6.2, §6.3, §8.4, §5.4
+**Note:** §6.3.4 defines the interleaving order for scheduling layers (wall clock, turn
+loop, tick cycle, event queue) and §6.3.7 defers actor ordering within a tick to this
+issue. The concurrency model defined here should be consistent with §6.3.
 
 Three features imply concurrent or interleaved execution — tick-based scheduling
 (§6.2), multiplayer (§8.4), and reactive rules (§5.4) — but the SPEC provides no
@@ -319,7 +304,12 @@ Needed:
 
 ### C.8 — No progressive disclosure strategy (high)
 
-**SPEC refs:** §1.3
+**SPEC refs:** §1.3, §6.3
+**Note:** §6.3 demonstrates the progressive disclosure strategy for scheduling:
+the compiler infers scheduling from natural-language rules, so advanced scheduling
+features remain invisible until the author writes rules that need them (§6.3.1, §6.3.2).
+This pattern — inference-based activation rather than explicit opt-in — may serve as a
+model for other features listed below.
 
 §1.3 states the guiding principle: "expand the ceiling without raising the floor."
 But the SPEC introduces substantial new complexity — sum types, reactive rules,
@@ -331,7 +321,8 @@ simple. The SPEC should articulate:
 
 - **Default behavior.** What is active in a new, minimal story? (Presumably: closed-
   world, turn-based, no journaling, no vectors, no FFI.) This should be stated
-  explicitly.
+  explicitly. **Note:** §3.4.2 confirms journaling is off by default — a minimal
+  story incurs no journaling overhead.
 - **Opt-in mechanisms.** How does an author activate advanced features? Per-property
   ("suspicion is a journaled number"), per-story ("this story uses open-world
   properties"), or per-package (importing a package activates its features)?
@@ -348,7 +339,9 @@ surprising behavior if left to implementation discretion.
 
 ### D.1 — Reactive rules + temporal state (high)
 
-**SPEC refs:** §5.4, §3.4
+**SPEC refs:** §5.4, §3.4, §6.3
+**Note:** §6.3.3 (Family 4: event-driven) defines the scheduling-layer integration of
+reactive rules. The journaling interaction described below remains unresolved.
 
 When a reactive rule fires ("when trust becomes less than 3"), does the state change
 that triggered it get journaled? Do intermediate states during reactive rule resolution
@@ -359,6 +352,10 @@ The SPEC should confirm: reactive rule mutations are journaled. Journal entries 
 rule provenance metadata (§5.2). Temporal conditions ("whether trust was previously
 below 3") may appear in reactive rule triggers because they reference concrete
 journaled values, not fuzzy conditions.
+
+**Note:** §3.4.5 confirms that reactive rule mutations are journaled with full
+provenance. Intermediate values during reactive rule chains are recorded as separate
+journal entries.
 
 ### D.2 — Vector similarity + open-world state (medium)
 
@@ -405,7 +402,11 @@ rules").
 
 ### D.5 — Multiplayer + turn model (medium)
 
-**SPEC refs:** §8.4, §6.1
+**SPEC refs:** §8.4, §6.1, §6.3
+**Note:** §6.3.4 defines the turn loop as advancing "when the player acts (or, in
+multiplayer, when all players in a round have acted)" and §6.3.5 notes that clock rules
+execute authoritatively on the server in multiplayer. The definition of "the player" in
+multiplayer and "every turn" semantics remain unresolved here.
 
 §6.1 says "the turn" is the default scheduling unit. §8.4 says multiple players can
 share a world. But "the player" is a singular concept in Inform 7's model. What
@@ -420,6 +421,10 @@ per player-action. Existing Inform 7 stories, being single-player, behave identi
 ### D.6 — Embeddability + output protocol (deferrable)
 
 **SPEC refs:** §11.1, §8.1, §8.2
+**Note:** [ARCH.md — D6](ARCH.md#d6--output-boundary-semantic-stream-only) establishes
+that the semantic stream is Chord's sole output interface. The protocol defined here
+is therefore the *only* way any consumer — standalone reader, embedding host, or
+observer — receives output from a Chord story.
 
 §11.1 says stories are embeddable as libraries. §8.1 says output is a semantic stream.
 But the SPEC doesn't define the protocol for an embedding host to consume this stream.
