@@ -1,0 +1,68 @@
+The Clockwork Garden
+====================
+
+A steampunk assembly puzzle.
+
+Collect three gears from various containers and place them on the workbench to bring a clockwork bird to life.
+
+
+Rooms
+-----
+
+Garden Gate
+  An ornate iron gate opens onto a garden of brass flowers and copper vines.
+  Contains: display case (closed, holds bronze gear)
+  Exits: east to Rose Terrace, south to Greenhouse
+
+Rose Terrace
+  Mechanical roses bloom and close in slow rhythm along a stone terrace.
+  Contains: cracked fountain (closed, holds silver gear)
+  Exits: west to Garden Gate, south to Clock Tower Base
+
+Greenhouse
+  Glass walls enclose a humid workshop. A heavy workbench dominates the center.
+  Contains: gold gear, workbench (open, empty)
+  Exits: north to Garden Gate, east to Clock Tower Base
+
+Clock Tower Base
+  The base of a tall clock tower. Gears turn slowly behind glass panels.
+  Contains: clockwork bird (bolted to stand, motionless)
+  Exits: north to Rose Terrace, west to Greenhouse
+
+
+Custom Kinds
+------------
+
+  gear      (parent: thing)     -- bronze, silver, gold gears
+  mechanism (parent: container) -- mechanical devices
+
+
+Key Mechanics
+-------------
+
+- The clockwork bird cannot be taken until it is assembled.
+- Place all three gears on the workbench to assemble the bird.
+- The workbench tracks gear count and announces progress.
+- A hint fires when moving toward the clock tower before assembly.
+- Gears click softly on the workbench each turn (every-turn rule).
+- The "assembly" scene begins when the first gear is placed and
+  ends when all three are in place.
+
+
+Sample Walkthrough
+------------------
+
+> look
+> open display case
+> take bronze gear
+> east
+> open cracked fountain
+> take silver gear
+> south
+> west
+> take gold gear
+> put bronze gear in workbench
+> put silver gear in workbench
+> put gold gear in workbench
+> east
+> take clockwork bird

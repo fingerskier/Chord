@@ -1,0 +1,29 @@
+"The Dark Cave" by Example Author
+
+A lamp is a kind of thing.
+A lamp has a truth state called lit.
+A lamp is usually not lit.
+
+The Dark Cave is a room. "You are in a damp, dark cave."
+The Sunlit Clearing is a room. "Bright sunlight filters through the canopy."
+The Sunlit Clearing is north of the Dark Cave.
+
+The brass lamp is a lamp in the Dark Cave. "An old brass lamp sits here."
+The wooden chest is a container in the Sunlit Clearing. "A sturdy wooden chest rests against a tree."
+The silver key is a thing in the wooden chest. "A small silver key."
+
+The player is in the Dark Cave.
+
+Instead of taking the brass lamp when the brass lamp is lit:
+    say "The lamp is too hot to grab with bare hands."
+
+After taking the silver key:
+    say "The key glints with an unusual shimmer as you pick it up."
+
+Every turn when the player is in the Dark Cave and the brass lamp is not lit:
+    say "You hear something skittering in the darkness."
+
+Darkness is a scene. Darkness begins when play begins. Darkness ends when the brass lamp is lit.
+
+When Darkness ends:
+    say "The shadows retreat. You feel safer now."

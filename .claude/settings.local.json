@@ -10,7 +10,12 @@
       "mcp__dude__get_record",
       "mcp__dude__upsert_record",
       "WebFetch(domain:ganelson.github.io)",
-      "WebFetch(domain:zedlopez.github.io)"
+      "WebFetch(domain:zedlopez.github.io)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

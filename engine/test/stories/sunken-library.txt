@@ -1,0 +1,78 @@
+The Sunken Library
+==================
+
+An underwater exploration adventure.
+
+Navigate flooded chambers, interact with an NPC librarian, and recover
+a magical tome from the deep archive.
+
+
+Rooms
+-----
+
+Entrance Hall
+  A grand hall with marble columns, ankle-deep in murky water.
+  Contains: soggy catalog
+  Exits: east to Reading Room, northeast to Coral Gallery, down to Deep Archive
+
+Reading Room
+  A dry, elevated chamber lined with shelves.
+  Contains: old librarian (person), reading desk (closed, holds rusted key)
+  Exits: west to Entrance Hall, up to Librarian Office
+
+Deep Archive
+  A submerged vault. Bioluminescent coral provides faint light.
+  Contains: glowing tome (magic book, sticky)
+  Exits: up to Entrance Hall (requires breathing charm)
+
+Coral Gallery
+  A gallery where coral has overtaken the bookshelves.
+  Contains: breathing charm
+  Exits: southwest to Entrance Hall
+
+Librarian Office
+  A cozy office above the reading room. Star charts cover every wall.
+  Contains: stone tablet
+  Exits: down to Reading Room
+
+
+Custom Kinds
+------------
+
+  book       (parent: thing)  -- soggy catalog
+  magic_book (parent: book)   -- glowing tome (3-level hierarchy)
+
+
+Key Mechanics
+-------------
+
+- The librarian cannot be taken ("I am NOT a book!").
+- Going down to the Deep Archive is one-way unless you carry the
+  breathing charm.
+- Examining the glowing tome when not carrying it triggers a replace
+  rule that redirects to "take" instead.
+- The glowing tome is sticky and cannot be dropped once taken.
+- The tome hums softly each turn while carried (every-turn rule).
+- The "flooding" scene begins when entering the Deep Archive and ends
+  when returning to the Entrance Hall with the charm.
+
+
+Sample Walkthrough
+------------------
+
+> look
+> take soggy catalog
+> northeast
+> take breathing charm
+> southwest
+> east
+> open reading desk
+> take rusted key
+> up
+> take stone tablet
+> down
+> west
+> down
+> examine glowing tome
+> up
+> look

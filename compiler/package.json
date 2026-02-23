@@ -1,21 +1,18 @@
 {
-  "name": "@chord/engine",
+  "name": "@chord/compiler",
   "version": "0.1.0",
-  "description": "Chord interactive fiction engine — runtime powered by libsql",
+  "description": "Chord story compiler — Inform 7-like DSL to TypeScript",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "chord-compile": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "story": "tsx test/story-runner.ts"
-  },
-  "dependencies": {
-    "@libsql/client": "^0.14.0",
-    "libsql": "^0.4.7"
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

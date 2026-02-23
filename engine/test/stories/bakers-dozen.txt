@@ -1,0 +1,87 @@
+The Baker's Dozen
+=================
+
+A whimsical baking simulation.
+
+Collect ingredients, mix dough, bake bread, and stock the display counter.
+Reach 13 baked goods to complete the story.
+
+
+Rooms
+-----
+
+Bakery Front
+  The cheerful shop front with a glass display counter.
+  Contains: display counter (open, empty)
+  Exits: south to Kitchen
+
+Kitchen
+  A warm kitchen with a mixing bowl and cast-iron oven.
+  Contains: mixing bowl (open), oven (closed), recipe book
+  Exits: north to Bakery Front, west to Pantry
+
+Pantry
+  A cool pantry lined with shelves of baking supplies.
+  Contains: flour sack, sugar jar, butter crock, egg basket
+  Exits: east to Kitchen
+
+
+Custom Kinds
+------------
+
+  ingredient (parent: thing)  -- flour, sugar, butter, eggs
+  baked_good (parent: thing)  -- dynamically created bread loaves
+
+
+Key Mechanics
+-------------
+
+- Put all 4 ingredients in the mixing bowl to create dough.
+- Take the dough and put it in the oven to start baking.
+- Wait 3 turns, then open the oven to get bread.
+- Opening the oven too early is blocked ("needs more time").
+- Take the bread and put it in the display counter.
+- The display tracks how many baked goods are on show.
+- A goods_baked counter on the player tracks total loaves.
+- Ingredients reappear in the pantry? No -- each bake cycle uses
+  them up. The story is designed for demonstration, not infinite play.
+
+Every-Turn Rules (by priority):
+  20 - Oven warmth when baking and player is in kitchen.
+  15 - Customers browsing when 3+ goods baked, player in shop.
+   5 - Pantry inventory listing when player is in pantry.
+
+Scenes (concurrent, based on goods_baked):
+  morning_rush    -- begins at 1, ends at 5
+  afternoon_lull  -- begins at 5, ends at 10
+  closing_time    -- begins at 10, ends at 13 (victory!)
+
+
+Sample Walkthrough (one bake cycle)
+------------------------------------
+
+> south
+> west
+> take flour sack
+> take sugar jar
+> take butter crock
+> take egg basket
+> east
+> examine recipe book
+> put flour sack in mixing bowl
+> put sugar jar in mixing bowl
+> put butter crock in mixing bowl
+> put egg basket in mixing bowl
+> take dough
+> open oven
+> put dough in oven
+> close oven
+> look
+> look
+> look
+> open oven
+> take fresh bread 1
+> north
+> put fresh bread 1 in display counter
+
+Repeat the cycle (ingredients permitting) to reach 13.
