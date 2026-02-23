@@ -1,0 +1,29 @@
+{
+  "name": "@chord/engine",
+  "version": "0.1.0",
+  "description": "Chord interactive fiction engine — runtime powered by libsql",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "libsql": "^0.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "Apache-2.0"
+}
