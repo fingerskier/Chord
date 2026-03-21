@@ -26,7 +26,8 @@
       "mcp__reqall-net__list_records",
       "Bash(wc:*)",
       "mcp__reqall-net__upsert_record",
-      "mcp__reqall-net__upsert_link"
+      "mcp__reqall-net__upsert_link",
+      "Bash(npm test:*)"
     ]
   }
 }
