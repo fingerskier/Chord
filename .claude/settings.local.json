@@ -24,7 +24,9 @@
       "mcp__reqall-net__upsert_project",
       "mcp__reqall-net__search",
       "mcp__reqall-net__list_records",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "mcp__reqall-net__upsert_record",
+      "mcp__reqall-net__upsert_link"
     ]
   }
 }
