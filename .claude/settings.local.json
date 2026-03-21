@@ -27,7 +27,9 @@
       "Bash(wc:*)",
       "mcp__reqall-net__upsert_record",
       "mcp__reqall-net__upsert_link",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "mcp__claude_ai_Reqall__get_record",
+      "mcp__claude_ai_Reqall__upsert_record"
     ]
   }
 }

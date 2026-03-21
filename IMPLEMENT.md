@@ -36,9 +36,12 @@ must be resolved before or during implementation.
 
 **Goal:** Solidify the language foundation before adding features on top of it.
 
-**SPEC refs:** §2.1, §2.2, §12.1
+**SPEC refs:** §2.1, §2.1.1, §2.2, §2.2.1, §1.3.1, §12.1
 **Resolves:** G.1 (structured syntax), G.16 (formal grammar), H.4 (Wasm vs TS),
 H.6 (dual spec files)
+**Spec status:** G.1 spec-resolved — §2.1.1 (ambiguity resolution) and §2.2.1
+(structured syntax grammar) now provide concrete syntax. §1.3.1 (progressive
+disclosure) defines the diagnostic pattern. ARCH.md D11 records the decision.
 
 ### 1.1 Formal Grammar
 - Write a BNF/EBNF grammar for the current Chord DSL in a `doc/GRAMMAR.md` or
@@ -125,14 +128,16 @@ Compiler emits correct diagnostics for open-world and journaling misuse.
 **SPEC refs:** §2.3
 **Resolves:** G.2 (sum types), G.3 (parameterized kinds), G.4 (first-class rules)
 
-### 3.1 Design Phase (Before Code)
-- These features need syntax design before implementation. Write a
-  `doc/TYPES.md` specifying:
-  - Sum type declaration syntax (NL and structured)
-  - Pattern matching / case analysis syntax
-  - Parameterized kind declaration and instantiation
-  - Rule-typed variables and invocation syntax
-- Get design review before proceeding.
+### 3.1 Design Phase ✓ COMPLETE
+- `doc/TYPES.md` has been written, specifying:
+  - Sum type declaration syntax (NL and structured), pattern matching,
+    exhaustiveness enforcement, nested sum types (§1)
+  - Optional values with `optional` keyword, leveraging three-state model (§2)
+  - Parameterized kind declaration and instantiation: list, relation, mapping (§3)
+  - Rule-typed variables, `apply` invocation, higher-order patterns (§4)
+  - Cross-type interactions: optional sum types, lists of sum types (§5)
+  - Storage representation and code generation strategy (§6)
+- SPEC.md §2.3 now references `doc/TYPES.md` as the authoritative spec.
 
 ### 3.2 Optional Values
 - Likely the simplest to implement — extend the three-state model from Phase 2.
@@ -291,6 +296,8 @@ extraction)
 - Implement namespaced identifiers in parser and analyzer.
 - Disambiguation rules: explicit prefix, author-chosen alias, contextual.
 - Integrate with kind/property/relation resolution.
+- **Spec status:** SPEC.md §2.4.1–§2.4.4 now specifies concrete namespace
+  declaration, import, disambiguation, and alias syntax.
 
 ### 7.3 Registry Protocol
 - HTTP API for package discovery, download, versioning.
@@ -330,6 +337,9 @@ H.3 (compile-time embeddings vs. runtime similarity)
 - Sandbox model: allowlist of granted capabilities.
 - Implementation via Wasm imports (if Wasm target) or Node.js function
   registration (current TS target).
+- **Spec status:** SPEC.md §11.2.1–§11.2.5 now specifies capability declaration,
+  five standard capabilities, host binding API, calling convention, and sandbox
+  model. ARCH.md D12 records the decision.
 
 ### 8.2 Embeddability API
 - Package the engine as an embeddable library.
@@ -349,6 +359,8 @@ H.3 (compile-time embeddings vs. runtime similarity)
 - Language syntax: `the 5 things most similar to [X]` → returns a list.
 - Compile-time embedding generation via external tools.
 - No fuzzy conditions (§4.3) — similarity queries return discrete object lists.
+- **Spec status:** SPEC.md §4.2.1–§4.2.3 now specifies embedding attachment
+  syntax, similarity query syntax, and result integration with parameterized lists.
 
 **Dependencies:** Phase 7 (FFI is the mechanism for compile-time embedding
 generation), Phase 6 (embeddability needs the semantic stream).
@@ -397,30 +409,30 @@ back to the correct Chord source line.
 
 ## Cross-Reference: Issues → Phases
 
-| Issue | Phase | Notes |
-|-------|-------|-------|
-| G.1  | 1     | Structured syntax design |
-| G.2  | 3     | Sum types |
-| G.3  | 3     | Parameterized kinds |
-| G.4  | 3     | First-class rules |
-| G.5  | 7     | Namespacing |
-| G.6  | 8     | Vector similarity syntax |
-| G.7  | 4, 9  | Provenance: engine in 4, tooling in 9 |
-| G.8  | 4     | Compositional rulebooks |
-| G.9  | 6     | Semantic output stream |
-| G.10 | 6     | Input event format |
-| G.11 | 7     | Package registry |
-| G.12 | 8     | FFI |
-| G.13 | 8     | Data import/export |
-| G.14 | 5     | Continuous time |
-| G.15 | 2, 4  | Appendix sections filled by implementation |
-| G.16 | 1     | Formal grammar |
-| G.17 | 1     | Error model |
-| G.18 | defer | Multiplayer — deferred indefinitely |
-| H.1  | 1     | Compatibility language cleanup |
-| H.2  | 2     | Absent semantics |
-| H.3  | 8     | Embeddings design |
-| H.4  | 1     | Wasm vs TS acknowledgment |
-| H.5  | 6     | Reference reader |
-| H.6  | 1     | Dual spec cleanup |
-| H.7  | 2     | Unknown transition documentation |
+| Issue | Phase | Spec Status | Notes |
+|-------|-------|-------------|-------|
+| G.1  | 1     | ✓ Resolved  | Structured syntax — SPEC.md §2.2.1, ARCH.md D11 |
+| G.2  | 3     | ✓ Resolved  | Sum types — `doc/TYPES.md` §1 |
+| G.3  | 3     | ✓ Resolved  | Parameterized kinds — `doc/TYPES.md` §3 |
+| G.4  | 3     | ✓ Resolved  | First-class rules — `doc/TYPES.md` §4 |
+| G.5  | 7     | ✓ Resolved  | Namespacing — SPEC.md §2.4.1–§2.4.4 |
+| G.6  | 8     | ✓ Resolved  | Vector similarity — SPEC.md §4.2.1–§4.2.3 |
+| G.7  | 4, 9  | Open        | Provenance: engine in 4, tooling in 9 |
+| G.8  | 4     | ✓ Resolved  | Compositional rulebooks — SPEC.md §5.3.1–§5.3.3 |
+| G.9  | 6     | Open        | Semantic output stream |
+| G.10 | 6     | Open        | Input event format |
+| G.11 | 7     | Open        | Package registry |
+| G.12 | 8     | ✓ Resolved  | FFI — SPEC.md §11.2.1–§11.2.5, ARCH.md D12 |
+| G.13 | 8     | Open        | Data import/export |
+| G.14 | 5     | Open        | Continuous time |
+| G.15 | 2, 4  | Open        | Appendix sections filled by implementation |
+| G.16 | 1     | Open        | Formal grammar (needs `doc/GRAMMAR.md`) |
+| G.17 | 1     | Open        | Error model |
+| G.18 | 8.4   | ✓ Partial   | Multiplayer — SPEC.md §8.4.1–§8.4.4, ARCH.md D14 |
+| H.1  | 1     | Open        | Compatibility language cleanup |
+| H.2  | 2     | Open        | Absent semantics |
+| H.3  | 8     | Open        | Embeddings design |
+| H.4  | 1     | Open        | Wasm vs TS acknowledgment |
+| H.5  | 6     | Open        | Reference reader |
+| H.6  | 1     | Open        | Dual spec cleanup |
+| H.7  | 2     | Open        | Unknown transition documentation |

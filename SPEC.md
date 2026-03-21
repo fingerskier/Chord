@@ -36,6 +36,22 @@ These are implementation details of a prior era.
 New capabilities should be available to authors who need them without increasing complexity for authors who don't.
 A simple story about a house with a locked door should be no harder to write than it is today.
 
+#### 1.3.1 Progressive Disclosure Mechanism
+
+The ceiling/floor principle is enforced through a three-part progressive disclosure pattern that applies uniformly to all features across all phases:
+
+1. **Zero-configuration default.** Every feature has a sensible default that requires no author action. Turn-based scheduling, closed-world properties, no journaling, no embeddings, no tick cycles, no namespacing. A story that uses none of these words operates exactly like a classic Inform 7 story.
+
+2. **Single-keyword opt-in.** Activating a feature requires adding one word or phrase to a declaration: `journaled`, `open-world`, `tick`, `optional`, clock-time phrases. No configuration files, no mode flags, no import statements. The keyword is the complete opt-in.
+
+3. **Graduated diagnostics.** The compiler uses four severity levels to guide authors toward features rather than presenting them as obstacles:
+   - **Informational** — what the compiler inferred ("'suspicion' is journaled with unlimited retention").
+   - **Suggestion** — an alternative the author might prefer ("did you mean to declare this as journaled?").
+   - **Warning** — a potential logic issue ("printing an unknown value produces '[unknown]'").
+   - **Error** — a definite mistake ("unknown values cannot participate in arithmetic").
+
+This is a pattern specification, not a feature. It applies universally and is documented here once rather than repeated per feature. The per-feature diagnostics in §3.3.10, §3.4.7, and §6.3.10 are instances of this pattern.
+
 ### 1.4 The World Model Is the Source of Truth
 
 All behavior flows from the state of the world and the rules that govern it.
@@ -53,6 +69,20 @@ It is Inform's most distinctive contribution and the quality that makes it acces
 However, the natural language surface should be recognized as exactly that — a surface.
 It is one way of expressing declarations and rules, not the only way.
 
+#### 2.1.1 Ambiguity Resolution Strategy
+
+The NL parser uses a deterministic resolution strategy when the natural language surface admits multiple interpretations:
+
+1. **Longest-match principle.** When multiple parse interpretations are possible, the parser selects the longest matching constituent. "The large brass lamp" is one noun phrase, not "the large" followed by "brass lamp." This applies to all phrase-level parsing: noun phrases, condition clauses, temporal expressions.
+
+2. **Specificity ordering.** When multiple rule patterns match the same input, specificity determines which fires first. A rule matching "taking the brass lamp" is more specific than "taking something." This extends the existing rule-cascade specificity (§5.2) to the parser level: the parser prefers the most specific interpretation of ambiguous input.
+
+3. **Structured annotation fallback.** When the compiler cannot resolve ambiguity, it emits a graduated diagnostic (§1.3.1) requesting the author to add a structured annotation (§2.2.1). The annotations serve as the disambiguation mechanism — they are not required for unambiguous input but are always available.
+
+4. **Reserved words.** Phase keywords (`Before`, `Instead of`, `Check`, `Carry out`, `After`, `Report`, `Every turn`, `When play begins`), type keywords (`truth state`, `number`, `text`, `optional`, `journaled`, `open-world`), and scheduling keywords (`tick`, `every N minutes/seconds`) are reserved. They cannot appear as object names without quoting. The quoting mechanism uses the structured syntax: `[name: "Every Turn"]` forces literal interpretation.
+
+5. **Error recovery.** On parse failure, the parser skips to the next sentence boundary (period followed by newline or end-of-file). Skipped text is reported as an error diagnostic with the source location. Parsing resumes at the next sentence.
+
 ### 2.2 Structured Syntax Mode
 
 Authors may drop into a structured syntax within any source text for situations where the natural language becomes ambiguous or unwieldy.
@@ -63,6 +93,39 @@ An author might describe a room in natural language and then express a complex c
 
 The structured syntax should be minimal and declarative in character — closer to a configuration language or a logic language than to an imperative programming language.
 
+#### 2.2.1 Structured Syntax Grammar
+
+The structured syntax uses a unified grammar based on bracket-delimited annotations:
+
+**Inline annotations.** A single annotation on one line:
+
+    [key: value]
+    [key: value, key2: value2]
+
+An inline annotation applies to the immediately following NL sentence. It modifies the compiler's interpretation of that sentence without changing its NL meaning.
+
+**Block annotations.** A multi-sentence structured region:
+
+    [begin structured]
+    ... structured content ...
+    [end structured]
+
+All sentences within a block annotation are interpreted in structured mode. Block annotations may nest.
+
+**Entry and exit.** The `[` character at the start of a line or after a sentence boundary opens an annotation. The `]` character followed by a newline closes it. Within an annotation, the syntax is `key: value` pairs separated by commas.
+
+**Precedence.** When a structured annotation and the NL phrasing of the following sentence conflict, the annotation wins. The compiler emits an informational diagnostic noting the override.
+
+**Existing annotation patterns.** The scattered annotation examples throughout this specification are instances of this grammar:
+
+- `[open-world: true]` (§3.3.11)
+- `[journal: enabled, depth: 10]` (§3.4.6)
+- `[schedule: clock, interval: 120s]` (§6.3.9)
+- `[unknown-default: 0]` (§3.3.11)
+- `[name: "literal string"]` (§2.1.1 reserved word quoting)
+
+All follow the same `[key: value]` grammar and obey the same precedence rules.
+
 ### 2.3 Enhanced Type System
 
 The kind system should be extended to support:
@@ -72,11 +135,56 @@ The kind system should be extended to support:
 - **Parameterized kinds.** A "list of beliefs" or a "relation between people and arguments" should be expressible as types, enabling libraries to define generic structures.
 - **First-class rules and phrases.** Rules and phrases should be passable as values, enabling higher-order patterns like "apply this evaluation strategy to each belief" without requiring the author to enumerate cases.
 
+The complete type system specification — including concrete declaration syntax, pattern matching, manipulation phrases, storage representation, and compiler behavior — is defined in `doc/TYPES.md`.
+
 ### 2.4 Ontological Namespacing
 
 As libraries grow in sophistication, name collisions become inevitable.
 The language should support namespaced vocabularies so that a rhetoric library's "claim" and a legal library's "claim" can coexist.
 The natural language surface should handle this gracefully — perhaps through contextual disambiguation or author-chosen aliases.
+
+#### 2.4.1 Namespace Declaration
+
+Every package declares its namespace via its header:
+
+    "Social Dynamics" by Jane Author begins here.
+
+The package name becomes the namespace. All kinds, properties, relations, and rules defined within the package belong to this namespace.
+
+#### 2.4.2 Importing Packages
+
+    Include Social Dynamics by Jane Author.
+
+This imports all exported names from the package into the current story's scope. If no collisions exist, imported names are used directly without qualification.
+
+#### 2.4.3 Collision Resolution
+
+When two imported packages define the same name, the compiler emits an error requiring disambiguation. The author resolves collisions using one of two mechanisms:
+
+**Qualified name prefix:**
+
+    The Social Dynamics claim is a kind of thing.
+    The Legal Framework claim is a kind of thing.
+
+The package name serves as the disambiguating prefix.
+
+**Alias declaration:**
+
+    Use "argument" to mean the Legal Framework claim.
+
+This creates a local alias. Within the current source, "argument" refers to the Legal Framework's "claim" kind.
+
+**Structured syntax equivalent:**
+
+    [import: Social Dynamics]
+    [import: Legal Framework, alias: {claim: legal-claim}]
+
+#### 2.4.4 Collision Precedence Rules
+
+1. Names defined in the current story take precedence over imported names.
+2. If two imports define the same name and neither is aliased, the compiler emits an error.
+3. Aliases resolve collisions at the source level — they are purely syntactic and carry no runtime cost.
+4. A package may re-export names from its own imports, creating transitive visibility.
 
 ---
 
@@ -537,6 +645,51 @@ The compiler reports journaling decisions transparently:
 
 These diagnostics align with §10.1 (LSP integration) and the progressive disclosure strategy (C.8) — errors guide the author toward the journaling feature rather than presenting it as an obstacle.
 
+### 3.5 Feature Composition: Integrated Example
+
+The following story demonstrates how open-world properties, journaling, reactive rules, and scheduling compose within a single source text. Each feature is activated by its opt-in keyword; the compiler infers the required infrastructure.
+
+    The Embassy is a room. "A high-ceilinged reception hall. Crystal chandeliers cast refracted light."
+    The Ambassador is a person in the Embassy.
+    The Spy is a person in the Embassy.
+
+    [Open-world + journaled properties: both keywords compose naturally.]
+    The loyalty of a person is an open-world journaled number.
+    The cover story of a person is an open-world journaled text.
+
+    [The Ambassador's loyalty is known; the Spy's is unknown.]
+    The loyalty of the Ambassador is 7.
+    The cover story of the Ambassador is "Cultural attache."
+
+    [Reactive rule: fires on knowledge transition (§5.4 + §3.3.9).]
+    When the loyalty of the Spy becomes known:
+        say "The room shifts. You now know where the Spy stands."
+
+    [Reactive rule with journaling: uses temporal query in condition.]
+    When the loyalty of the Ambassador becomes less than 3:
+        if the loyalty of the Ambassador has ever been greater than 6:
+            say "The Ambassador's loyalties have reversed completely."
+
+    [Clock-scheduled rule: real-time tension (§6.3).]
+    Every 30 seconds the chandelier flickers ominously.
+
+    [Turn-based rule with open-world guard.]
+    Every turn when the loyalty of the Spy is unknown:
+        say "'I have nothing to declare,' the Spy says."
+
+    [Turn-based rule with journaling query.]
+    Every turn when the cover story of the Ambassador has changed this turn:
+        say "You notice the Ambassador's story has shifted."
+
+    [Tick-scheduled NPC behavior.]
+    The Guard is a person in the Embassy.
+    The Guard acts every tick.
+    Every tick when the Guard is in the Embassy:
+        if a random chance of 1 in 4 succeeds:
+            say "The Guard scans the room."
+
+This story activates four scheduling layers (turn, clock, tick, event queue), two property modifiers (open-world, journaled), and reactive rules — all through single-keyword opt-ins with zero configuration.
+
 ---
 
 ## 4. Vector Similarity as a Query Layer
@@ -558,6 +711,56 @@ Once returned, these objects participate in the rule system exactly like any oth
 
 This preserves the author's ability to reason about what happened and why.
 The vector space selected the candidates; the discrete rule cascade determined the consequences.
+
+#### 4.2.1 Attaching Embeddings
+
+Embeddings are attached to objects at compile time using a description string:
+
+    The brass lamp has an embedding from "old brass oil lamp, tarnished, warm light".
+
+Or via structured annotation:
+
+    [embedding: "old brass oil lamp, tarnished, warm light"]
+    The brass lamp is a thing in the Dark Cave.
+
+The compiler generates a vector from the description string using a configurable embedding provider (via the FFI at compile time, per D4 in `doc/ARCH.md`). The resulting vector is baked into the compiled artifact and stored in the sqlite-vec index alongside the world model.
+
+**Implicit embeddings.** If no explicit embedding is provided and the object has a description property, the compiler may optionally generate an embedding from the description. This is controlled by a project-level setting: `[auto-embed: descriptions]`. By default, auto-embedding is off.
+
+**Runtime-created objects.** Objects created at runtime cannot have embeddings (per D4: compile-time only). Authors who need similarity queries over dynamic objects should pre-embed a pool of template objects and assign them at runtime.
+
+#### 4.2.2 Similarity Query Syntax
+
+**Natural language form:**
+
+    Let nearby-concepts be the 5 things most similar to the current-topic.
+
+The pattern is: `the N [kind] most similar to [reference]`.
+
+- `N` — a positive integer specifying the number of results.
+- `[kind]` — the kind to search within (e.g., `things`, `beliefs`, `concepts`). The query only considers objects of this kind that have embeddings.
+- `[reference]` — a world model object with an embedding, or a text literal (compiled to a vector at compile time).
+
+**Text-based query:**
+
+    Let related-items be the 3 things most similar to "ancient treasure".
+
+When the reference is a text literal, the compiler generates an embedding from the text at compile time.
+
+**Structured syntax:**
+
+    [similarity: {kind: thing, reference: current-topic, limit: 5}]
+    let nearby-concepts be the similar results;
+
+#### 4.2.3 Using Query Results
+
+The result is a `list of [kind]` (§2.3, `doc/TYPES.md` §3). It can be iterated, tested, and used in rule conditions like any other list:
+
+    Let nearby-concepts be the 5 beliefs most similar to the new-evidence.
+    Repeat with B running through nearby-concepts:
+        say "[B] is relevant to this evidence."
+        if B is a conviction:
+            say "This belief is firmly held."
 
 ### 4.3 No Fuzzy Conditions
 
@@ -603,6 +806,34 @@ This metadata should be inspectable at runtime and in tooling, making it possibl
 
 Authors and library designers should be able to compose rulebooks — defining a new rulebook that consults several others in a specified order.
 This supports the layered library model where a "social interaction" rulebook might consult "etiquette rules," then "relationship rules," then "personality rules."
+
+#### 5.3.1 Consultation Order Syntax
+
+**Natural language form:**
+
+    The social-interaction rules consult the etiquette rules, then the relationship rules, then the personality rules.
+
+The pattern is: `The [composite-rulebook] consults [rulebook₁], then [rulebook₂], ...`
+
+**Semantics.** Consultation is sequential. The composite rulebook processes each sub-rulebook in the declared order. Within each sub-rulebook, normal specificity ordering applies (§5.2). If a sub-rulebook produces a `stop` outcome (a rule in that book succeeds with `stop the action` or `rule succeeds`), later sub-rulebooks are not consulted.
+
+#### 5.3.2 Fall-Through Control
+
+By default, a `stop` outcome in any consulted rulebook halts the composite. Authors may override this with a fall-through annotation:
+
+    The social-interaction rules consult the etiquette rules (with fall-through), then the relationship rules.
+
+With `(with fall-through)`, even if the etiquette rules produce a `stop`, processing continues to the relationship rules. The `stop` outcome is recorded but does not halt consultation.
+
+**Structured syntax:**
+
+    [rulebook: social-interaction, consults: [etiquette, relationship, personality], fall-through: [etiquette]]
+
+The `fall-through` key lists the sub-rulebooks that should not halt the composite on `stop`.
+
+#### 5.3.3 Composite Priority
+
+When a composite rulebook is itself part of a larger cascade (e.g., the `before` phase of an action), it occupies a single priority slot. The composite's priority is the highest priority among its constituent rulebooks. This ensures predictable ordering when composites and non-composite rules coexist in the same phase.
 
 ### 5.4 Reactive Rules
 
@@ -917,6 +1148,18 @@ This removes an entire class of legacy constraints and simplifies the toolchain.
 The compilation target should support both integer and floating-point arithmetic.
 Authors should not have to think about this for typical use, but libraries modeling continuous quantities, probabilities, or spatial reasoning should have access to real-valued computation.
 
+### 7.4 Resource Constraints
+
+Resource limits are target-dependent. The TypeScript/Node.js target (the current implementation) operates within the host runtime's memory management and has no Chord-specific resource model. The following constraints apply when a WebAssembly compilation target is implemented:
+
+- **Memory budget.** Each story instance has a configurable maximum Wasm linear memory allocation. Default: 64 MB. The host application may override this via instantiation options. Exceeding the budget triggers a runtime error event via the semantic output stream (§8.1).
+
+- **Vector dimension threshold.** Embeddings stored in the sqlite-vec index are limited to 2048 dimensions per vector by default. Higher dimensions require explicit opt-in: `[embedding-dimensions: N]` in the project configuration. This prevents accidental storage bloat from high-dimensional embedding models.
+
+- **Turn time budget.** A configurable maximum execution time per turn. Default: 5 seconds. If a turn exceeds this limit, the engine halts execution, reverts to the savepoint (preserving world state integrity), and emits a timeout error event via the semantic output stream. The host may adjust this limit for stories with complex rule cascades.
+
+These constraints are intentionally deferred from the TypeScript/Node.js implementation phase. Specifying Wasm resource limits before the Wasm target exists would be premature. The constraints documented here serve as design intent for the Wasm compilation phase.
+
 ---
 
 ## 8. The I/O Architecture
@@ -958,6 +1201,44 @@ The parser normalizes all of these into actions.
 Because the I/O is a structured protocol rather than a text stream, multiple clients can connect to a single running story.
 Players can share a world (with rules governing concurrent actions) or observers can watch a story unfold.
 This is not a primary use case but should be architecturally possible rather than precluded.
+
+#### 8.4.1 Connection Model
+
+The host application opens a story instance. Clients connect via the semantic output stream protocol (§8.1) and structured input event format (§8.3). Each client is assigned a player entity in the world model — a thing of kind `person` (or a subkind) that serves as that player's actor for the rule cascade.
+
+Client input events are tagged with the player entity ID. The engine routes each action to the correct actor.
+
+#### 8.4.2 Turn Resolution Policies
+
+The story author selects a turn resolution policy. Two policies are defined:
+
+**FIFO mode (default).** Commands are processed in the order they are received by the host. Each command constitutes a full turn for that player. Other players' commands queue behind it. This is the simplest model and is appropriate for asynchronous or play-by-post scenarios.
+
+**Simultaneous mode.** All player commands are collected within a configurable time window (set by the host). When the window closes, commands are processed as a batch. Each player's command is evaluated against the pre-batch world state for condition testing. State changes are applied in declaration order of players (the order in which player entities appear in the source text). This models simultaneous action for real-time or round-based multiplayer.
+
+The policy is declared in the source text:
+
+    This story uses simultaneous turns.
+
+Or via structured annotation:
+
+    [multiplayer: simultaneous, window: 30s]
+
+The default (no declaration) is FIFO.
+
+#### 8.4.3 Observer Mode
+
+Observer clients receive the semantic output stream but cannot send input events. An observer sees all players' outputs. The host application may filter the stream per observer based on visibility rules (e.g., an observer might only see public events, not a specific player's internal monologue). Filtering is the host's responsibility, not Chord's.
+
+#### 8.4.4 Scope Boundary
+
+Multiplayer networking, transport protocol, discovery, and authentication are host-application concerns, not Chord concerns. Chord provides:
+
+- Turn-serialization semantics (FIFO or simultaneous)
+- Per-player actor routing via the structured I/O protocol
+- Observer stream output
+
+Everything else — WebSocket transport, matchmaking, authentication, latency compensation — is the host's responsibility. This boundary ensures Chord remains embeddable in diverse hosting environments without coupling to any specific networking stack.
 
 ---
 
@@ -1022,6 +1303,38 @@ When something unexpected happens at runtime, the author should be able to trace
 The compiled story should be embeddable as a library in larger applications.
 A game engine, a web application, or a chatbot framework should be able to instantiate a story, send it input, and receive structured output — using the story as a simulation engine rather than a standalone experience.
 
+#### 11.1.1 Embeddability API
+
+The embedding API provides a minimal, async-aware interface:
+
+```typescript
+interface ChordInstance {
+  /** Initialize the story and return the opening output (room description, etc.) */
+  start(): Promise<SemanticEvent[]>;
+
+  /** Process one turn of player input. Returns after the full turn completes. */
+  send(input: InputEvent): Promise<SemanticEvent[]>;
+
+  /** Register a callback for asynchronous output (clock-scheduled rules, §6.3.5). */
+  onAsyncOutput(callback: (events: SemanticEvent[]) => void): void;
+
+  /** Serialize the complete world state (including journal, clock state, vector index). */
+  save(): Promise<Uint8Array>;
+
+  /** Restore from a previously saved snapshot. */
+  restore(snapshot: Uint8Array): Promise<void>;
+
+  /** Release all resources. The instance cannot be used after this call. */
+  destroy(): void;
+}
+```
+
+**Synchronous turns.** The `send()` method returns a promise that resolves after the entire turn completes — including all phases of the rule cascade, every-turn rules, scene processing, and reactive rules. From the host's perspective, a turn is an atomic operation.
+
+**Asynchronous output.** Clock-scheduled rules (§6.3.5) produce output between turns, delivered via the `onAsyncOutput` callback. The host must handle async output on its own event loop. If no clock-scheduled rules exist, the callback is never invoked.
+
+**Implementation dependency.** The synchronous API surface is well-defined and maps directly to the existing `Engine` class. The async protocol for clock-scheduled output requires the wall-clock implementation from Phase 5 of `IMPLEMENT.md`. Until Phase 5, `onAsyncOutput` is a no-op.
+
 ### 11.2 Foreign Function Interface
 
 Libraries should be able to call out to host-provided functions for capabilities beyond the world model — network requests, machine learning inference, database queries, hardware interaction.
@@ -1029,6 +1342,71 @@ This is the mechanism by which an Chord story could, for example, consult an LLM
 
 The FFI should be sandboxed and capability-gated.
 A story declares what external capabilities it requires; the host decides whether to grant them.
+
+#### 11.2.1 Capability Declaration
+
+A story declares its required capabilities using natural language:
+
+    This story requires network access.
+    This story requires the embedding-generation capability.
+    This story requires file system read access.
+
+**Structured syntax:**
+
+    [capabilities: network-access, embedding-generation]
+
+#### 11.2.2 Capability Catalog
+
+The following standard capabilities are defined:
+
+| Capability | Description |
+|-----------|-------------|
+| `network-access` | HTTP/HTTPS requests to external services |
+| `file-system-read` | Read files from the host filesystem |
+| `file-system-write` | Write files to the host filesystem |
+| `embedding-generation` | Call an external embedding model (compile-time only per D4) |
+| `random-external` | Cryptographic random source (beyond the built-in deterministic PRNG) |
+
+Stories and packages may declare custom capabilities beyond this catalog. The host must recognize and grant them explicitly.
+
+#### 11.2.3 Host Binding API
+
+The host registers FFI functions for granted capabilities:
+
+```typescript
+interface FFIBinding {
+  capability: string;
+  functions: Record<string, (...args: unknown[]) => unknown | Promise<unknown>>;
+}
+
+engine.registerFFI({
+  capability: 'network-access',
+  functions: {
+    httpGet: (url: string) => fetch(url).then(r => r.json()),
+    httpPost: (url: string, body: string) => fetch(url, { method: 'POST', body }).then(r => r.json()),
+  },
+});
+```
+
+#### 11.2.4 Calling Convention
+
+**Natural language form:**
+
+    Let the response be the result of calling httpGet with "https://api.example.com/data".
+
+The pattern: `the result of calling [function-name] with [arg1], [arg2], ...`
+
+**Structured syntax:**
+
+    [ffi: httpGet, args: ["https://api.example.com/data"]]
+    let the response be the external result;
+
+#### 11.2.5 Sandbox and Failure Model
+
+1. A story declares capabilities. The host grants or denies each one at instantiation time.
+2. If a story calls an FFI function for a capability that was not granted, the call returns **absent** (per D8: fail-safe with provenance). The failure is logged with provenance metadata identifying the denied capability, the calling rule, and the source location.
+3. If a granted FFI function throws an exception at runtime, the call returns **absent** with the exception message recorded in provenance. The turn is not aborted — the rule continues with the absent value.
+4. No implicit capabilities. A story that declares no capabilities has no FFI access. This is the default and the expected state for most stories.
 
 ### 11.3 Data Import and Export
 

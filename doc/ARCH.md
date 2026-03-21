@@ -396,3 +396,145 @@ operations work. The choice of libsql (D1) directly enables the implementation.
 - Deferring multiplayer save avoids overspecifying a protocol before multiplayer
   semantics (D9) are battle-tested
 
+---
+
+## D11 — NL ambiguity resolution: longest-match with structured-annotation fallback
+
+**Status:** decided
+**Date:** 2026-03-21
+**SPEC refs:** §2.1.1, §2.2.1
+**Issue refs:** G.1, G.16 (partial)
+
+**Context:**
+The natural language parser operates on a constrained English DSL, but SPEC.md
+never defined what happens when the NL surface admits multiple valid parses.
+G.1 flagged the absence of a unified structured syntax grammar. G.16 flagged
+the lack of a formal grammar (addressed separately in `doc/GRAMMAR.md` during
+implementation Phase 1).
+
+**Decision:**
+NL ambiguity is resolved through a three-layer strategy:
+
+1. **Longest-match parsing** — the parser selects the longest matching
+   constituent when multiple interpretations exist.
+2. **Specificity ordering** — when multiple rule patterns match, the most
+   specific interpretation wins (extending §5.2 to the parser level).
+3. **Structured annotation fallback** — when the compiler cannot resolve
+   ambiguity, it emits a graduated diagnostic requesting the author to add
+   a `[key: value]` annotation per the unified grammar in §2.2.1.
+
+Reserved words (phase keywords, type keywords, scheduling keywords) cannot
+appear as object names without quoting via `[name: "literal"]`.
+
+**Rationale:**
+- Longest-match is the standard strategy for NL-like grammars and matches
+  author intuition
+- Structured annotations provide an escape hatch without polluting the NL
+  surface for simple cases
+- The unified annotation grammar (§2.2.1) consolidates scattered examples
+  into a single, learnable syntax
+
+---
+
+## D12 — FFI security: capability-gated, fail-safe on denial
+
+**Status:** decided
+**Date:** 2026-03-21
+**SPEC refs:** §11.2
+**Issue refs:** G.12
+
+**Context:**
+SPEC §11.2 stated that the FFI should be "sandboxed and capability-gated" but
+provided no concrete capability catalog, calling convention, host binding API,
+or failure behavior. G.12 flagged this as underspecified.
+
+**Decision:**
+The FFI security model follows a capability-grant pattern:
+
+1. Stories declare required capabilities in natural language or structured
+   syntax. Five standard capabilities are defined: `network-access`,
+   `file-system-read`, `file-system-write`, `embedding-generation`,
+   `random-external`. Custom capabilities are supported.
+2. The host grants or denies each capability at instantiation time.
+3. FFI calls to ungranted capabilities return **absent** (per D8 fail-safe).
+   The failure is logged with provenance metadata.
+4. FFI functions that throw at runtime also return **absent** with the
+   exception recorded. Turns are not aborted.
+5. No implicit capabilities. A story with no capability declarations has
+   no FFI access.
+
+**Rationale:**
+- Explicit declaration makes security auditable — readers of a story's source
+  text can see exactly what external access it requests
+- Fail-safe on denial follows D8 and the platform's progressive-disclosure
+  philosophy — a story that loses FFI access degrades gracefully
+- The host-grant model allows the same story to run in sandboxed (web) and
+  privileged (server) environments without source changes
+
+---
+
+## D13 — Resource model: deferred until Wasm target, constraints documented
+
+**Status:** decided
+**Date:** 2026-03-21
+**SPEC refs:** §7.4
+**Issue refs:** F (deferred indefinitely: resource model)
+
+**Context:**
+The resource model (Wasm memory budgets, vector dimension thresholds, turn
+time budgets) was deferred indefinitely in ISSUES.md §F because the current
+implementation targets TypeScript/Node.js, which has no meaningful memory
+boundary controlled by Chord.
+
+**Decision:**
+Resource constraints are documented in SPEC.md §7.4 as design intent for the
+future Wasm compilation target:
+
+- Memory budget: configurable, default 64 MB Wasm linear memory
+- Vector dimension threshold: 2048 max by default, explicit opt-in for higher
+- Turn time budget: configurable, default 5 seconds, revert on timeout
+
+These constraints are **not implemented** for the TypeScript/Node.js target.
+They serve as binding specification for Phase 8+ (Wasm compilation).
+
+**Rationale:**
+- Specifying constraints before the target exists would be premature — values
+  are likely to change during Wasm implementation
+- Documenting the constraints now prevents future implementors from making
+  incompatible assumptions
+- The TypeScript/Node.js target relies on the host runtime's memory management
+
+---
+
+## D14 — Multiplayer: turn semantics specified, transport deferred to host
+
+**Status:** decided
+**Date:** 2026-03-21
+**SPEC refs:** §8.4
+**Issue refs:** G.18, D9
+
+**Context:**
+Multiplayer was referenced in scheduling (§6.3) and I/O (§8.4) but never
+concretely specified. G.18 flagged it as underspecified. D9 decided the core
+turn serialization semantics but left the connection model and observer mode
+unspecified.
+
+**Decision:**
+Multiplayer turn semantics are now fully specified in SPEC.md §8.4:
+
+1. Clients connect via the semantic stream protocol. Each is assigned a player
+   entity in the world model.
+2. Two turn-resolution policies: FIFO (default) and simultaneous (author opt-in).
+3. Observer mode: output-only clients with no input capability.
+4. **Scope boundary:** networking, transport, discovery, and authentication are
+   host concerns. Chord provides turn serialization, per-player routing, and
+   observer streaming. Everything else is the host's responsibility.
+
+**Rationale:**
+- The scope boundary keeps Chord embeddable in any hosting environment without
+  coupling to a specific networking stack
+- Two policies (FIFO and simultaneous) cover the primary interactive fiction
+  use cases identified in D9
+- Observer mode enables spectating and streaming with no additional engine
+  complexity — it is simply a read-only semantic stream connection
+

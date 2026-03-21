@@ -126,19 +126,31 @@ implemented in `compiler/src/parser.ts`. Examples in `engine/src/demo-story.ts` 
 
 ---
 
-## F. Deferred to Phase Roadmap
+## F. Deferred to Phase Roadmap ✓ RESOLVED
 
-The following items were removed from this document because they describe design
-questions for features that do not yet exist. They will be addressed as part of their
-respective phase designs. See `doc/SPEC.md` for the phase roadmap.
+The following items have been specified at the spec level. Concrete syntax,
+semantics, and protocols are documented in the referenced sections.
+Implementation proceeds according to the phase roadmap in `IMPLEMENT.md`.
 
-- **Phase 1:** NL parser ambiguity resolution, progressive disclosure defaults
-- **Phase 2:** NL syntax for enhanced types (sum types, optionals, parameterized
-  kinds), vector similarity + open-world interaction, advanced feature composition
-  examples
-- **Phase 3:** Package namespacing + rule cascade ordering, FFI security model
-- **Deferred indefinitely:** Resource model (Wasm memory budgets, vector dimension
-  thresholds), multiplayer turn semantics, async embeddability protocol
+- **Phase 1 (NL parser ambiguity, progressive disclosure):** ✓ Resolved.
+  See SPEC.md §2.1.1 (ambiguity resolution strategy), §2.2.1 (structured syntax
+  grammar), §1.3.1 (progressive disclosure mechanism), ARCH.md D11.
+
+- **Phase 2 (enhanced types, vector similarity, feature composition):** ✓ Resolved
+  at spec level. See `doc/TYPES.md` (sum types, optionals, parameterized kinds,
+  first-class rules), SPEC.md §4.2.1–§4.2.3 (vector similarity syntax),
+  SPEC.md §3.5 (feature composition worked example).
+
+- **Phase 3 (namespacing, rulebook composition, FFI):** ✓ Resolved at spec level.
+  See SPEC.md §2.4.1–§2.4.4 (ontological namespacing), SPEC.md §5.3.1–§5.3.3
+  (compositional rulebooks), SPEC.md §11.2.1–§11.2.5 (FFI security model),
+  ARCH.md D12.
+
+- **Deferred indefinitely (resource model, multiplayer, async):** ✓ Partially
+  resolved. Resource model constraints documented in SPEC.md §7.4 (ARCH.md D13).
+  Multiplayer turn semantics specified in SPEC.md §8.4.1–§8.4.4 (ARCH.md D14);
+  transport deferred to host. Async embeddability API documented in SPEC.md
+  §11.1.1; implementation depends on Phases 5–6.
 
 ---
 
@@ -147,48 +159,51 @@ respective phase designs. See `doc/SPEC.md` for the phase roadmap.
 Features described conceptually in SPEC.md but lacking the concrete syntax,
 protocol definitions, or detail needed to implement them.
 
-### G.1 — Structured Syntax Mode
+### G.1 — Structured Syntax Mode ✓ RESOLVED
 
 **SPEC refs:** §2.2
-The spec describes an "escape hatch" where authors drop into structured syntax
-alongside natural language. Scattered `[annotation]` examples appear in §3.3.11,
-§3.4.6, and §6.3.9, but there is no unified grammar for structured mode — no
-entry/exit delimiters, no formal syntax, no interaction rules with the NL surface.
+**Resolution:** SPEC.md §2.2.1 now defines the unified structured syntax grammar:
+`[key: value]` inline annotations, `[begin structured]`/`[end structured]` block
+annotations, entry/exit delimiters, precedence rules, and consolidation of all
+scattered annotation examples. ARCH.md D11 records the decision.
 
-### G.2 — Sum Types (Enumerations with Associated Data)
-
-**SPEC refs:** §2.3
-The spec says a "response" might be "an agreement carrying a belief" or "a refusal
-carrying a reason." No declaration syntax, no pattern-matching syntax, no examples
-of how sum types compose with the rule system or conditions.
-
-### G.3 — Parameterized Kinds
+### G.2 — Sum Types (Enumerations with Associated Data) ✓ RESOLVED
 
 **SPEC refs:** §2.3
-"A list of beliefs" and "a relation between people and arguments" are mentioned as
-desirable types. No declaration syntax for kind parameters, no instantiation syntax,
-no type-checking rules.
+**Resolution:** `doc/TYPES.md` §1 specifies complete sum type syntax: declaration
+(`[Kind] can be [variant] carrying [type]`), pattern matching (NL and structured),
+exhaustiveness enforcement per D8, integration with rule conditions, and nested
+sum types.
 
-### G.4 — First-Class Rules and Phrases
+### G.3 — Parameterized Kinds ✓ RESOLVED
 
 **SPEC refs:** §2.3
-Rules and phrases should be "passable as values." No syntax for declaring a
-rule-typed variable, passing a rule to a phrase, or invoking a rule value.
+**Resolution:** `doc/TYPES.md` §3 specifies parameterized kinds: three built-in
+constructors (`list of [K]`, `relation between [K₁] and [K₂]`, `mapping from
+[K₁] to [K₂]`), instantiation syntax, manipulation phrases, type checking, and
+storage representation.
 
-### G.5 — Ontological Namespacing
+### G.4 — First-Class Rules and Phrases ✓ RESOLVED
+
+**SPEC refs:** §2.3
+**Resolution:** `doc/TYPES.md` §4 specifies first-class rules: rule-typed variables,
+`apply [rule] to [value]` invocation syntax, rule references in conditions, why
+anonymous rules are not supported, and higher-order patterns (strategy pattern).
+
+### G.5 — Ontological Namespacing ✓ RESOLVED
 
 **SPEC refs:** §2.4
-"Contextual disambiguation or author-chosen aliases" are mentioned. No syntax for
-declaring a namespace, importing a namespaced vocabulary, resolving collisions, or
-defining aliases. Critical dependency for the package system (§9).
+**Resolution:** SPEC.md §2.4.1–§2.4.4 now specifies: package-header namespace
+declaration, `Include` import syntax, qualified name prefix and alias
+disambiguation, collision precedence rules, and structured syntax equivalents.
 
-### G.6 — Vector Similarity Query Syntax
+### G.6 — Vector Similarity Query Syntax ✓ RESOLVED
 
 **SPEC refs:** §4.1–§4.5
-The spec defines the conceptual model (embeddings as index, not property; no fuzzy
-conditions) but provides no language-level syntax for: attaching embeddings to
-objects, writing similarity queries ("the 5 concepts most similar to X"), or
-integrating query results into rule conditions.
+**Resolution:** SPEC.md §4.2.1–§4.2.3 now specifies: embedding attachment syntax
+(NL and structured), implicit vs. explicit embeddings, similarity query syntax
+(`the N [kind] most similar to [reference]`), text-based queries, and integration
+with parameterized lists from `doc/TYPES.md`.
 
 ### G.7 — Rule Provenance Query Syntax
 
@@ -197,12 +212,13 @@ Provenance metadata (source location, library, specificity score, rulebook posit
 is described. No syntax for inspecting this at runtime or in authored conditions.
 No specification of what the tooling API looks like.
 
-### G.8 — Compositional Rulebooks
+### G.8 — Compositional Rulebooks ✓ RESOLVED
 
 **SPEC refs:** §5.3
-"A social interaction rulebook might consult etiquette rules, then relationship
-rules, then personality rules." No syntax for declaring a composite rulebook,
-specifying consultation order, or controlling fall-through behavior.
+**Resolution:** SPEC.md §5.3.1–§5.3.3 now specifies: consultation order syntax
+(`consults ... then ...`), sequential semantics with stop-on-halt default,
+fall-through control annotation `(with fall-through)`, structured syntax, and
+composite priority rules for cascade integration.
 
 ### G.9 — Semantic Output Stream Protocol
 
@@ -225,12 +241,13 @@ Registries are URL-identified and provider-managed (per D3/A.5). But there is no
 package manifest format, no registry HTTP API, no dependency resolution algorithm,
 no versioning scheme (semver? something else?), and no package file structure.
 
-### G.12 — Foreign Function Interface
+### G.12 — Foreign Function Interface ✓ RESOLVED
 
 **SPEC refs:** §11.2
-"Sandboxed and capability-gated." No calling convention, no capability declaration
-syntax, no sandbox implementation strategy, no host-side binding API. The FFI is
-referenced by §4.4 (embeddings) and §11.1 (embeddability) but never defined.
+**Resolution:** SPEC.md §11.2.1–§11.2.5 now specifies: capability declaration syntax
+(NL and structured), five standard capabilities, host binding API (TypeScript
+interface), calling convention (`the result of calling [fn] with [args]`), and
+sandbox/failure model (absent on denial per D8). ARCH.md D12 records the decision.
 
 ### G.13 — Data Import/Export Format
 
@@ -269,12 +286,14 @@ address concrete runtime failure modes: what happens when a rule body throws an
 exception, when the database is corrupted, when an FFI call fails, or when the
 event queue overflows.
 
-### G.18 — Multiplayer
+### G.18 — Multiplayer ✓ PARTIALLY RESOLVED
 
 **SPEC refs:** §8.4, §6.3.4 (D.5 reference), §6.3.5
-Multiplayer is referenced in scheduling ("when all players in a round have acted"),
-clock rules ("execute authoritatively on the server"), and I/O ("multiple clients
-can connect"). None of these are specified beyond a single sentence each.
+**Resolution:** SPEC.md §8.4.1–§8.4.4 now specifies: connection model (clients
+assigned player entities), two turn resolution policies (FIFO and simultaneous),
+observer mode, and scope boundary (Chord provides turn semantics; transport/auth
+deferred to host). ARCH.md D14 records the decision. Networking protocol remains
+host-dependent and intentionally unspecified.
 
 ---
 
