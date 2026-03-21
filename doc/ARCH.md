@@ -18,7 +18,6 @@ Each entry follows this structure:
 - **Context** — the problem or question being resolved
 - **Decision** — what we chose
 - **Rationale** — why this choice over alternatives
-- **Alternatives considered** — what we evaluated and why we passed
 
 ---
 
@@ -49,14 +48,6 @@ Use **libsql** (the Turso fork of SQLite) as the embedded relational engine.
   Apache 2.0)
 - Virtual table and extension support for future needs (custom indexes,
   full-text search)
-
-**Alternatives considered:**
-- **SQLite** — proven and ubiquitous, but no native replication story; would
-  require a separate solution for multiplayer sync
-- **DuckDB** — strong analytical query performance, but oriented toward OLAP
-  workloads rather than transactional world-model updates; heavier footprint
-- **Custom engine** — maximum flexibility but unjustified engineering cost when
-  an existing engine meets all requirements
 
 ---
 
@@ -94,15 +85,6 @@ the engine falls back to batch-on-input mode.
 - The semantic output stream already supports asynchronous delivery, so clock output
   requires no new protocol
 
-**Alternatives considered:**
-- **Explicit mode declarations** ("This story uses tick-based scheduling") — rejected
-  because it violates §1.1 and adds authoring friction for the common case
-- **Simulated wall clock** (batch-process accumulated firings on next player input) —
-  simpler to implement but less immersive; retained as the fallback for constrained
-  environments
-- **Global scheduling mode** (entire story is either turn-based or tick-based) —
-  rejected because per-rule binding is more flexible and naturally composes
-
 ---
 
 ## D3 — Package registry federation: URL-identified, provider-managed
@@ -135,17 +117,6 @@ public registry serves the open ecosystem.
 - The model mirrors established patterns (npm + private registries, Claude plugin
   marketplace, Docker registry federation) that have proven to scale
 
-**Alternatives considered:**
-- **Single centralized registry** — simpler to implement, but creates a
-  bottleneck and makes private/institutional packages awkward; would require
-  retrofitting federation later
-- **Peer-to-peer / DHT-based discovery** — decentralized, but adds significant
-  complexity and latency for a use case where curated registries serve authors
-  better
-- **Platform-managed auth with registry tokens** — gives a unified auth
-  experience, but pushes access-policy complexity into the platform where it
-  doesn't belong
-
 ---
 
 ## D4 — Embeddings: design-time and compile-time only
@@ -173,14 +144,6 @@ compiled artifact. The no-runtime-dependency guarantee holds without qualificati
 - Aligns with the platform's offline-first, author-centric philosophy
 - Design-time regeneration still supports large or evolving concept spaces without
   compromising runtime independence
-
-**Alternatives considered:**
-- **Runtime generation with declared capability** — allow stories to opt into runtime
-  embedding via FFI capability declarations; preserves flexibility but weakens the
-  no-dependency guarantee to a conditional promise and complicates the runtime
-- **Hybrid model** (precomputed + runtime fallback) — use cached embeddings where
-  available, call external service only for novel inputs; adds caching complexity
-  and still breaks the no-dependency guarantee for edge cases
 
 ---
 
@@ -211,14 +174,6 @@ frontend or presentation layer.
 - Eliminates the ambiguity about who owns "compatibility" rendering
 - The semantic stream already carries enough structure for any reader to
   reconstruct text output
-
-**Alternatives considered:**
-- **Built-in text renderer** — provide a reference text-mode frontend within
-  Chord; rejected because it blurs the output boundary and creates maintenance
-  burden for a concern that belongs to consumers
-- **Dual output** (semantic stream + raw text) — emit both formats; rejected
-  because it doubles the output contract and the text output would still not
-  match Glulx byte-for-byte
 
 ---
 
@@ -263,14 +218,181 @@ Authors can test for known-ness (`if X is known`), provide defaults
 - Closed-world mode (the default) is completely unaffected — unknown never exists,
   `is unknown` always returns false, `is known` always returns true
 
-**Alternatives considered:**
-- **Strict: require explicit handling** — compiler requires `is known` guards before
-  any condition on an open-world property; maximum safety but raises the floor
-  significantly for open-world authors, creates verbose boilerplate, and feels like
-  "writing software" rather than "building a world"
-- **Pure fail-safe, no diagnostics** — unknown silently doesn't match, no compiler
-  feedback at all; simplest model but makes debugging difficult when rules
-  unexpectedly don't fire due to unknown values
-- **SQL NULL three-valued logic** — propagate unknown through boolean operators
-  (NOT unknown = unknown); formally elegant but notoriously confusing even for
-  professional programmers, and inappropriate for a narrative authoring medium
+---
+
+## D7 — Backward compatibility: softened guarantee, no compatibility modes
+
+**Status:** decided
+**Date:** 2026-03-20
+**SPEC refs:** §2.3, §12.1, §12.2
+**Issue refs:** B.3
+
+**Context:**
+§12.1 claims the natural language surface is "a superset of the existing language,"
+but enhanced type features from §2.3 (optionals, sum types, parameterized kinds)
+could change the semantics of existing code. If a built-in property becomes optional
+where it wasn't before, existing code that assumes it always has a value could break.
+Issue B.3 flagged this contradiction between backward compatibility promises and the
+enhanced type system.
+
+**Decision:**
+Chord's backward-compatibility guarantee is softened: Chord aims for broad
+compatibility with existing Inform 7 source texts but does not guarantee exact
+reproduction of legacy behavior. Enhanced type features apply uniformly — there
+are no compatibility modes, flags, or per-story version selectors. Authors of
+existing stories should expect minor adaptation when moving to Chord.
+
+**Rationale:**
+- Compatibility modes fragment the language and create a permanent maintenance burden
+- The enhanced type system is a core design goal (§2.3), not optional — carving out
+  a legacy mode would mean maintaining two semantic models indefinitely
+- Most existing Inform 7 code will work as-is; the cases that break are precisely the
+  ones where legacy semantics were underspecified or surprising
+- A clean, uniform type system is more valuable to the ecosystem than byte-for-byte
+  legacy fidelity
+
+---
+
+## D8 — Error model: fail-safe with provenance
+
+**Status:** decided
+**Date:** 2026-03-20
+**SPEC refs:** §5 (rule system), §5.2 (provenance), §11.2 (FFI), §4.2 (similarity)
+**Issue refs:** C.1
+
+**Context:**
+The SPEC never defines what happens when things go wrong. Issue C.1 flagged this as
+blocking: FFI call failures, empty similarity queries, reactive rule cycles, and
+non-exhaustive pattern matches all need defined behavior. Without an error model,
+implementors must guess and authors cannot reason about failure.
+
+**Decision:**
+Chord's error model follows the platform's fail-safe philosophy with full provenance:
+
+1. **Rule outcomes:** Preserve Inform 7's three-outcome semantics — succeed, fail, or
+   no decision. The six-phase cascade (before → instead → check → carry out → after →
+   report) processes outcomes as specified in §5.1.
+
+2. **FFI failures:** A failed FFI call returns an absent (optional) value, never
+   crashes the story. The failure is logged with provenance (calling rule, source
+   location, error detail) for tooling to surface.
+
+3. **Empty similarity queries:** Return an empty list. Rules that iterate over
+   similarity results simply produce no matches — consistent with the fail-safe
+   pattern.
+
+4. **Reactive rule cycles:** The engine breaks after a configurable depth limit
+   (default: 20). When the limit is reached, the engine emits a diagnostic that
+   traces the cycle using rule provenance (§5.2), naming each rule in the chain.
+   The triggering state change is committed; the cycle-breaking halt is not silent.
+
+5. **Sum type exhaustiveness:** Enforced at compile time. A non-exhaustive match is
+   a compile error. Accessing an absent optional at runtime produces a clear error
+   with source location (§10.4).
+
+**Rationale:**
+- Fail-safe is consistent with D5 (open-world semantics) and the platform's
+  progressive-disclosure philosophy
+- Provenance on every failure enables the REPL (§10.2) and LSP (§10.1) to surface
+  actionable diagnostics without requiring authors to add error-handling boilerplate
+- Compile-time enforcement for exhaustiveness catches the most dangerous errors early
+- The configurable cycle depth limit avoids infinite loops while allowing legitimate
+  multi-step reactive chains
+
+---
+
+## D9 — Concurrency: serialized turns, deterministic tick order
+
+**Status:** decided
+**Date:** 2026-03-20
+**SPEC refs:** §5.4, §6.2, §6.3, §8.4
+**Issue refs:** C.5
+
+**Context:**
+Three features imply concurrent or interleaved execution — tick-based scheduling
+(§6.2), multiplayer (§8.4), and reactive rules (§5.4) — but the SPEC provides no
+ordering semantics. Issue C.5 flagged this as blocking: when Alice and Bob both act
+on the same tick, who goes first? When a reactive rule fires during another actor's
+action, does it resolve immediately or queue?
+
+**Decision:**
+
+1. **Within a turn:** All state changes are serialized. There is no true concurrency
+   within the engine — the world model is single-threaded. This holds even in
+   multiplayer: the host serializes all player commands before processing.
+
+2. **Tick ordering:** Actors within a tick execute in a deterministic order. The
+   default is declaration order (the order in which actors appear in the source text).
+   Authors can override: "Alice acts before Bob" inserts an explicit ordering
+   constraint. The compiler validates that ordering constraints are acyclic.
+
+3. **Reactive rule timing:** Reactive rules triggered by a state change resolve
+   immediately, within the current action's processing, before the next action begins.
+   This means a state change in a carry-out phase can trigger a reactive rule that
+   modifies state before the after phase runs. Cycle detection (D8, depth limit)
+   prevents infinite chains.
+
+4. **Multiplayer command ordering:** Commands from multiple players are collected by
+   the host and ordered before processing. The default policy is FIFO (first received,
+   first processed). A simultaneous policy (all commands processed as a batch within
+   one turn, each seeing the pre-turn state) is supported as an author opt-in.
+   The choice is per-story, not per-turn.
+
+**Rationale:**
+- Serialized execution eliminates race conditions and makes the world model
+  deterministic — critical for save/restore fidelity and debugging
+- Declaration-order default is predictable and requires no author configuration for
+  simple cases
+- Immediate reactive rule resolution matches Inform 7's existing "when" semantics
+  and produces the most intuitive behavior for narrative authors
+- Two multiplayer policies (FIFO and simultaneous) cover the vast majority of
+  interactive fiction use cases without overcomplicating the model
+
+---
+
+## D10 — Save/restore: full-state snapshots via libsql
+
+**Status:** decided
+**Date:** 2026-03-20
+**SPEC refs:** §3.1, §3.4
+**Issue refs:** C.6
+
+**Context:**
+Save, restore, and undo are fundamental to interactive fiction. Issue C.6 flagged
+that the SPEC mentions the relational store but never specifies how these core
+operations work. The choice of libsql (D1) directly enables the implementation.
+
+**Decision:**
+
+1. **Save** = a complete snapshot of the libsql database state. All tables (objects,
+   properties, exits, relations, scenes, meta) including journal history are captured.
+   The snapshot is a single portable file (libsql's native serialization).
+
+2. **Restore** = replace the current in-memory database state with a saved snapshot.
+   The engine reloads all tables from the snapshot file.
+
+3. **Undo** = revert to the state before the most recent turn. The engine maintains
+   a single-turn checkpoint (savepoint) that is refreshed at the start of each turn.
+   Undo restores this checkpoint and decrements the turn counter.
+
+4. **Vector indices** are derived state — they can be rebuilt from the stored embeddings
+   after a restore. They are not part of the snapshot. This keeps snapshots compact
+   and avoids serializing index-specific data structures.
+
+5. **Output transcript** is a presentation-layer concern. It is not part of saved state.
+   Reader applications that want to preserve transcript history manage it independently.
+
+6. **Multiplayer save/restore** is deferred. The single-player save/restore design
+   does not preclude multiplayer extensions (the host could coordinate a save across
+   all connected clients), but the protocol is not specified here.
+
+**Rationale:**
+- libsql's native serialization produces compact, portable snapshots with no custom
+  serialization code
+- Single-turn checkpoints provide undo with minimal overhead — a single savepoint per
+  turn, no unbounded history
+- Excluding vector indices keeps snapshots small; rebuilding is fast for typical story
+  sizes (embeddings are already in the database, only the index structure is rebuilt)
+- Deferring multiplayer save avoids overspecifying a protocol before multiplayer
+  semantics (D9) are battle-tested
+

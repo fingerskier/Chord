@@ -1,522 +1,347 @@
 # Issues and Gaps in SPEC.md
 
-This document catalogs problems in `SPEC.md` — contradictions, missing specifications,
-underspecified features, and unresolved interactions between features. Each item is
-framed from the author's perspective: what would a person writing a story or building
-a library encounter?
-
-Every issue references the relevant SPEC section(s) and is tagged with priority:
-**blocking** (must resolve before implementation), **high** (affects core authoring
-experience), **medium** (affects library authors or advanced use), or **deferrable**
-(can be resolved post-1.0).
+This document catalogs problems found in `SPEC.md` — contradictions, missing
+specifications, underspecified features, and unresolved interactions. Items that
+were resolved are kept as a decision record. Items that described design questions
+for unbuilt Phase 1/2/3 features have been removed — they will be addressed when
+those phases are designed. See `doc/SPEC.md` for the phase roadmap.
 
 ---
 
-## A. Open Questions (5 items)
+## A. Open Questions — ALL RESOLVED
 
-These are gaps where SPEC.md is silent or hedges. Each needs a concrete answer.
-
-### A.1 — Storage engine commitment (deferrable) ✓ RESOLVED
+### A.1 — Storage engine commitment ✓ RESOLVED
 
 **SPEC refs:** §3.1, §4.4
 **Resolution:** See [ARCH.md — D1](ARCH.md#d1--storage-engine-libsql). Decision: **libsql**.
 
-~~§3.1 hedges with "such as SQLite" and §4.4 with "such as sqlite-vec." The choice of
-storage engine has downstream consequences for journaled properties (§3.4),
-save/restore, and vector similarity queries, but it is ultimately an implementation
-decision. The SPEC should either commit to a specific engine or define the abstract
-capabilities the engine must provide (relational queries, vector indexing, transactional
-snapshots, journal storage) so that the choice can be made during implementation without
-revising the spec.~~
-
-### A.2 — How authors select scheduling policies (blocking) ✓ RESOLVED
+### A.2 — How authors select scheduling policies ✓ RESOLVED
 
 **SPEC refs:** §6.1, §6.2, §6.3
 **Resolution:** See [SPEC.md — §6.3](../SPEC.md). Decision: **inferred scheduling**.
 
 Authors never declare a scheduling mode. The compiler infers the required scheduling
 infrastructure from natural-language temporal expressions in rules. Turn-based is the
-zero-configuration default; clock-relative, tick-relative, and event-driven scheduling
-activate automatically when the author writes rules that need them. §6.3 covers all
-four requirements:
+zero-configuration default.
 
-- **Story-level default:** Turn-based, always, zero configuration (§6.3.2).
-- **Per-actor overrides:** Temporal expressions bind to specific actors (§6.3.7).
-- **Containment hierarchy:** Wall clock → turn loop → tick cycle, with event queue
-  throughout (§6.3.4).
-- **Composability rules:** Five explicit constraints with compiler enforcement (§6.3.8).
-
-~~§6.2 lists four scheduling modes (turn-based, tick-based, event-driven, continuous time)
-and says they are "composable," but provides no mechanism for an author to select or
-configure them. An author writing a story with NPC agents on a tick schedule and
-player interaction on turns has no way to express this.~~
-
-~~The SPEC should add a subsection (§6.3 or similar) covering:~~
-
-~~- **Story-level default.** How does an author declare the primary scheduling mode?
-  In natural language this might be: "This story uses tick-based scheduling."~~
-~~- **Per-actor overrides.** "Alice acts every third tick." / "The market updates once
-  per round."~~
-~~- **Containment hierarchy.** What is the nesting relationship between turns, ticks,
-  events, and continuous-time steps? When a turn contains multiple ticks, what
-  determines the tick count?~~
-~~- **Composability rules.** §6.2 says modes are composable but gives no constraints.
-  Can an author mix continuous time and turn-based in the same region? What happens
-  at boundaries?~~
-
-### A.3 — Natural-language syntax for temporal features (high) ✓ RESOLVED
+### A.3 — Natural-language syntax for temporal features ✓ RESOLVED
 
 **SPEC refs:** §3.4, §6.2, §6.3
-**Resolution:** All three categories are now specified.
+**Resolution:** All three categories now specified: scheduling (§6.3.3), history
+queries (§3.4.4), journaling configuration (§3.4.3).
 
-- **Scheduling:** Covered by §6.3.3 (four families of temporal expression: turn-relative,
-  clock-relative, tick-relative, event-driven).
-- **Querying history:** Covered by §3.4.4 (five families of history query expression:
-  immediate previous, offset access, existential, aggregate, change detection).
-- **Journaling configuration:** Covered by §3.4.3 (the "journaled" modifier, retention
-  depth, relation journaling, journal entry contents).
+### A.4 — Extension migration path ✓ RESOLVED
 
-~~§3.4 introduces journaled properties and §6.2 introduces event scheduling, but neither
-provides authoring syntax.
-An author who wants to say "the previous location of the
-player" or "in three turns, the bridge collapses" has no specified way to do so.~~
+**Decision:** Chord does not natively support Inform 7 `.i7x` extension files. The package system (§9) is the sole extension mechanism.
 
-~~The SPEC should define three categories of temporal expression:~~
+### A.5 — Package registry federation ✓ RESOLVED
 
-~~- **Scheduling:** "In 3 turns, [event]." / "After 10 seconds, [event]." /
-  "Every other tick, [action]."~~
-~~- **Querying history:** "the previous location of the player" /
-  "whether trust has ever been below 3" / "the value of suspicion two turns ago"~~
-~~- **Journaling configuration:** How does an author opt a property into journaling?
-  What is the default retention depth? A natural phrasing might be:
-  "The suspicion of a person is a journaled number."~~
-
-### ~~A.4 — Extension migration path~~ (resolved)
-
-**Decision:** Chord does not natively support Inform 7 `.i7x` extension files. The package system (§9) is the sole extension mechanism. Authors must migrate legacy extensions to Chord packages manually. A conversion tool may be provided in the future but is out of scope for the spec.
-
-### ~~A.5 — Package registry federation~~ (resolved)
-
-**Decision:** Registries are URL-identified services, declared by authors in priority order within their project configuration. The tooling queries each registry sequentially during dependency resolution. Authentication and access control are the provider's responsibility, not the platform's. A default public registry serves the open ecosystem; authors may add private or domain-specific registries alongside it. See ARCH.md D3 for full rationale.
+**Decision:** See [ARCH.md — D3](ARCH.md#d3--package-registry-federation-url-identified-provider-managed). URL-identified registries, provider-managed auth, author-declared priority order.
 
 ---
 
-## B. Internal Contradictions (4 items)
+## B. Internal Contradictions — ALL RESOLVED
 
-These are places where SPEC.md contradicts itself. Each needs a resolution.
+### B.1 — "No runtime dependency" vs. FFI for embeddings ✓ RESOLVED
 
-### ~~B.1 — "No runtime dependency" vs. FFI for embeddings~~ (resolved)
+**Resolution:** See [ARCH.md — D4](ARCH.md#d4--embeddings-design-time-and-compile-time-only). Embeddings at design/compile time only, never runtime.
 
-**Decision:** Embeddings are generated only at design time and compile time, never at runtime. External services (via FFI, §11.2) may be used during the design cycle to generate or regenerate embeddings, but the resulting vectors are baked into the compiled artifact. This eliminates the contradiction: the "no runtime dependency" guarantee in §4.4 holds without qualification. See ARCH.md D4.
+### B.2 — Optional values vs. open-world "unknown" ✓ RESOLVED
 
-### ~~B.2 — Optional values vs. open-world "unknown"~~ (resolved)
+**Resolution:** See [ARCH.md — D5](ARCH.md#d5--open-world-semantics-fail-safe-with-graduated-diagnostics). Three-state model (valued / absent / unknown), fail-safe with graduated diagnostics.
 
-**Decision:** The SPEC (§3.3) now distinguishes three states: valued, absent, and unknown.
-Absent is known — the author has said "X has no Y." Unknown means nothing has been said
-(open-world only). The system fails safe: conditions on unknown values evaluate to "no match"
-(the rule silently doesn't fire). The compiler provides graduated diagnostics to guide
-authors toward explicit handling when it matters. Arithmetic on unknown is a compile error;
-say phrases on unknown produce a warning. Authors can test for known-ness (`is known`,
-`is unknown`), provide defaults (`or 0 if unknown`), and suppress suggestions
-(`even if unknown`). Closed-world mode (the default) is completely unaffected.
-See [ARCH.md — D5](ARCH.md#d5--open-world-semantics-fail-safe-with-graduated-diagnostics).
+### B.3 — Backward compatibility vs. enhanced type system ✓ RESOLVED
 
-### B.3 — Backward compatibility vs. enhanced type system (high)
+**Resolution:** See [ARCH.md — D7](ARCH.md#d7--backward-compatibility-softened-guarantee-no-compatibility-modes). Softened guarantee, no compatibility modes.
 
-**SPEC refs:** §12.1, §2.3
+### B.4 — Semantic output stream vs. behavioral fidelity ✓ RESOLVED
 
-§12.1 claims the natural language surface is "a superset of the existing language."
-But the new type features from §2.3 (optionals, sum types, parameterized kinds) could
-change the semantics of existing code if they affect the Standard Rules. For example,
-if a built-in property becomes optional where it wasn't before, existing code that
-assumes it always has a value could break.
-
-**Note:** The enhanced type system could change existing stories — not just the Standard
-Rules but any code whose semantics shift under new type features. New type features
-are employed based on language choice rather than isolated behind compatibility modes.
-
-**Resolution:** The SPEC's backward-compatibility guarantee (§1.2, §12.2) has been
-softened: Chord aims for broad compatibility but does not guarantee exact reproduction
-of legacy behavior. Enhanced type features apply uniformly. Authors of existing stories
-should expect minor adaptation. No compatibility modes or flags are introduced — the
-type system is the type system.
-
-### ~~B.4 — Semantic output stream vs. behavioral fidelity~~ (resolved)
-
-**SPEC refs:** §8.1, §12.2
-**Resolution:** See [ARCH.md — D6](ARCH.md#d6--output-boundary-semantic-stream-only).
-
-Chord produces the semantic output stream (§8.1) and nothing else. The semantic stream
-is the sole output interface — there is no built-in compatibility presentation layer.
-Reader and player applications consume the stream and decide how to render it: as
-traditional text, graphical UI, voice, or any other modality. If a reader app wants to
-approximate legacy Glulx text output, that is the reader's concern, not Chord's.
+**Resolution:** See [ARCH.md — D6](ARCH.md#d6--output-boundary-semantic-stream-only). Semantic stream is sole output interface.
 
 ---
 
-## C. Missing Specifications (8 items)
+## C. Missing Specifications — ALL RESOLVED
 
-These are areas where SPEC.md is silent but shouldn't be.
+### C.1 — Error model ✓ RESOLVED
 
-### C.1 — No error model (blocking)
+**Resolution:** See [ARCH.md — D8](ARCH.md#d8--error-model-fail-safe-with-provenance). Fail-safe with provenance.
 
-**SPEC refs:** §5 (rule system), §11.2 (FFI), §4.2 (similarity queries)
+### C.3 — Compilation model ✓ RESOLVED
 
-The SPEC never says what happens when things go wrong. What does the author see when
-an FFI call fails? When a similarity query finds no matches? When reactive rules form
-a cycle? When a sum type isn't exhaustively matched?
+**Resolution:** Resolved by implementation. See `compiler/src/compiler.ts`.
+Four phases: tokenize → parse → analyze → generate.
 
-Needed:
+### C.4 — Parser specification ✓ RESOLVED
 
-- **Rule outcomes:** Preserve Inform 7's succeed/fail/no-decision semantics.
-- **FFI failures:** Return an absent (optional) value, never crash the story.
-- **Empty similarity queries:** Return an empty list.
-- **Reactive rule cycles:** Break after a configurable depth limit, emit a diagnostic
-  that traces the cycle using rule provenance (§5.2).
-- **Sum type matching:** Exhaustive matching enforced at compile time. Accessing an
-  absent optional at runtime produces a clear error with source location (§10.4).
+**Resolution:** Resolved by implementation. See `compiler/src/parser.ts`.
+Deterministic recursive-descent parser handles the Chord DSL. Grammar defined in
+`MVP.md`. NL parsing is a Phase 1 design task.
 
-### C.2 — No resource model (medium)
+### C.5 — Concurrency model ✓ RESOLVED
 
-**SPEC refs:** §3.2, §3.4, §4.4
+**Resolution:** See [ARCH.md — D9](ARCH.md#d9--concurrency-serialized-turns-deterministic-tick-order). Serialized turns, deterministic tick order.
 
-§3.2 promises tens of thousands of objects. §3.4 adds journaled histories for
-properties. §4.4 adds vector embeddings. Together these could consume substantial
-memory, but the SPEC says nothing about limits, budgets, or what happens when
-resources are exhausted.
+### C.6 — Save/restore specification ✓ RESOLVED
 
-Needed:
-
-- Configurable memory budget for the WebAssembly runtime, with a sensible default.
-- Journaled properties: configurable retention depth (how many past values to keep).
-  Default could be unlimited, but the author needs a way to say "keep only the last
-  10 values." **Note:** §3.4.3 specifies configurable retention depth via "with depth N."
-- Vector indices: declared embedding dimensions. Warnings or errors when object count
-  × dimension exceeds practical thresholds.
-- Clear error behavior when any limit is hit (graceful degradation, not silent
-  corruption).
-
-### C.3 — No compilation model (blocking)
-
-**SPEC refs:** §7.2, §10.1
-
-§7.2 says compilation is "direct" and may use "a thin IR" but provides no further
-detail. §10.1 promises LSP support with real-time diagnostics and autocomplete.
-These are deeply connected — the compiler architecture determines what the LSP can do
-and how fast it can respond.
-
-The SPEC should define (or explicitly defer to a separate compiler design document):
-
-- **Compilation phases** at a conceptual level (parsing, name resolution, type
-  checking, code generation) — not to prescribe implementation, but to establish
-  vocabulary for discussing incremental compilation, error reporting, and LSP
-  integration.
-- **Incremental compilation granularity.** What is the unit of recompilation — a
-  declaration, a section, a file, a package? This directly affects LSP responsiveness.
-- **Grammar extensibility.** §9 implies packages can define new natural-language
-  patterns. How does this interact with the parser? Can packages extend the grammar,
-  and if so, at what phase?
-
-### C.4 — No parser specification (blocking)
-
-**SPEC refs:** §2.1, §2.2, §2.4
-
-The natural language parser is the hardest technical problem in the system, and the
-SPEC says almost nothing about it. For an author, parser behavior determines whether
-their sentences are understood. For a library author, it determines whether their
-new vocabulary integrates cleanly.
-
-Needed:
-
-- **Ambiguity resolution strategy.** When a sentence could be parsed multiple ways,
-  what decides? Specificity? Locality (prefer the nearest scope)? Author declaration?
-- **NL/structured syntax boundary.** §2.2 says authors can drop into structured syntax
-  "without ceremony" but doesn't specify the delimiter. Indentation? Braces? A keyword
-  like "formally:"? This affects every author who uses both modes.
-- **Package-contributed grammar.** If a rhetoric library defines "X argues that Y,"
-  how does the parser learn this pattern? Is it declared in the package? Does it
-  require compiler support?
-- **Backward compatibility validation.** How is the parser verified against existing
-  Inform 7 source texts? A comprehensive test suite of parseable sentences is needed.
-
-### C.5 — No concurrency model (blocking)
-
-**SPEC refs:** §6.2, §6.3, §8.4, §5.4
-**Note:** §6.3.4 defines the interleaving order for scheduling layers (wall clock, turn
-loop, tick cycle, event queue) and §6.3.7 defers actor ordering within a tick to this
-issue. The concurrency model defined here should be consistent with §6.3.
-
-Three features imply concurrent or interleaved execution — tick-based scheduling
-(§6.2), multiplayer (§8.4), and reactive rules (§5.4) — but the SPEC provides no
-ordering semantics. When Alice and Bob both act on the same tick, who goes first?
-When a reactive rule fires during another actor's action, does it resolve immediately
-or queue?
-
-Needed:
-
-- **Within a turn:** All state changes are serialized (no true concurrency).
-- **Tick ordering:** Deterministic order for actors within a tick. Default could be
-  declaration order; authors should be able to override ("Alice acts before Bob.").
-- **Reactive rule timing:** Reactive rules triggered by a state change resolve
-  immediately, within the current action's processing, before the next action begins.
-- **Multiplayer ordering:** Commands from multiple players are collected and ordered
-  by the host. The SPEC should name at least two policies (sequential/FIFO and
-  simultaneous) without mandating one.
-
-### C.6 — No save/restore specification (blocking)
-
-**SPEC refs:** §3.1
-
-Save, restore, and undo are fundamental to interactive fiction. The SPEC mentions the
-relational store but never specifies how these core operations work.
-
-Needed:
-
-- **Save** = snapshot of the full world model state (all tables, including journal
-  history).
-- **Restore** = replace current state with a saved snapshot.
-- **Undo** = revert to the state before the most recent turn, using the journal.
-- **Vector indices** are derived (recomputable from embeddings), not primary state.
-  They may be rebuilt on restore rather than stored.
-- **Output transcript** is a presentation-layer concern, not part of saved state.
-- **Multiplayer save/restore:** Who can save? Does it require consensus? (May be
-  deferred, but the single-player design shouldn't preclude it.)
-
-### C.7 — No FFI security model (high)
-
-**SPEC refs:** §11.2
-
-§11.2 says the FFI is "sandboxed and capability-gated" but provides no details.
-Authors and players need to understand: when I run a story that uses an LLM extension,
-what can it access? When I install a package that declares FFI capabilities, what am
-I granting?
-
-Needed:
-
-- **Named capabilities** with clear scopes (e.g., network access, file system read,
-  file system write, LLM inference, hardware sensors).
-- **Declaration requirement:** Packages declare required capabilities in their manifest.
-  The story's project file grants or denies them.
-- **Failure mode:** A denied capability causes the FFI call to return an absent value
-  (tying into C.1's error model), not a crash.
-- **Player visibility:** When running a story, the player (or host) should be able to
-  see what capabilities the story uses and deny any of them.
-
-### C.8 — No progressive disclosure strategy (high)
-
-**SPEC refs:** §1.3, §6.3
-**Note:** §6.3 demonstrates the progressive disclosure strategy for scheduling:
-the compiler infers scheduling from natural-language rules, so advanced scheduling
-features remain invisible until the author writes rules that need them (§6.3.1, §6.3.2).
-This pattern — inference-based activation rather than explicit opt-in — may serve as a
-model for other features listed below.
-
-§1.3 states the guiding principle: "expand the ceiling without raising the floor."
-But the SPEC introduces substantial new complexity — sum types, reactive rules,
-tick-based scheduling, vector similarity, open-world properties, journaled state —
-without describing how these features stay invisible to authors who don't need them.
-
-A simple story about a house with a locked door (§1.3's own example) must remain
-simple. The SPEC should articulate:
-
-- **Default behavior.** What is active in a new, minimal story? (Presumably: closed-
-  world, turn-based, no journaling, no vectors, no FFI.) This should be stated
-  explicitly. **Note:** §3.4.2 confirms journaling is off by default — a minimal
-  story incurs no journaling overhead.
-- **Opt-in mechanisms.** How does an author activate advanced features? Per-property
-  ("suspicion is a journaled number"), per-story ("this story uses open-world
-  properties"), or per-package (importing a package activates its features)?
-- **Error messages for accidental encounters.** If an author accidentally uses syntax
-  from an advanced feature they didn't opt into, the error message should guide them
-  rather than confuse them.
+**Resolution:** See [ARCH.md — D10](ARCH.md#d10--saverestore-full-state-snapshots-via-libsql). Full-state libsql snapshots.
 
 ---
 
-## D. Feature Interactions (7 items)
+## D. Feature Interactions — 3 RESOLVED, 1 OPEN
 
-These are pairs of features whose interaction isn't specified. Each could produce
-surprising behavior if left to implementation discretion.
+### D.1 — Reactive rules + temporal state ✓ RESOLVED
 
-### D.1 — Reactive rules + temporal state (high)
+**Resolution:** §3.4.5 confirms reactive rule mutations are journaled with full
+provenance. Reactive rule timing specified by D9 (resolve immediately).
 
-**SPEC refs:** §5.4, §3.4, §6.3
-**Note:** §6.3.3 (Family 4: event-driven) defines the scheduling-layer integration of
-reactive rules. The journaling interaction described below remains unresolved.
+### D.3 — Structured syntax + natural language interop ✓ RESOLVED
 
-When a reactive rule fires ("when trust becomes less than 3"), does the state change
-that triggered it get journaled? Do intermediate states during reactive rule resolution
-get journaled? If a chain of reactive rules changes trust from 5→2→7→1, the journal
-should record all four values with their provenance (which rule caused each change).
+**Resolution:** Resolved by implementation. Single DSL compiles through one AST to
+one representation. All names visible throughout.
 
-The SPEC should confirm: reactive rule mutations are journaled. Journal entries carry
-rule provenance metadata (§5.2). Temporal conditions ("whether trust was previously
-below 3") may appear in reactive rule triggers because they reference concrete
-journaled values, not fuzzy conditions.
-
-**Note:** §3.4.5 confirms that reactive rule mutations are journaled with full
-provenance. Intermediate values during reactive rule chains are recorded as separate
-journal entries.
-
-### D.2 — Vector similarity + open-world state (medium)
-
-**SPEC refs:** §4.1, §3.3
-
-What embedding does an object get when some of its properties are "unknown"? If a
-character's loyalty is unknown (open-world), does the embedding reflect "person with
-unknown loyalty" differently from "person with no loyalty" (absent/optional)?
-
-The SPEC should clarify: embeddings are computed from an object's *declared* content.
-Unknown values are simply absent from the embedding input. Authors who want "unknown"
-to carry semantic weight must model it explicitly (e.g., as a sum type: loyalty is
-either "known loyalty" or "unknown loyalty"). Additionally, the SPEC should specify
-when embeddings are recomputed — on every property change? Only on explicit request?
-On a schedule?
-
-### D.3 — Structured syntax + natural language interop (high)
-
-**SPEC refs:** §2.1, §2.2
-
-The SPEC says authors can use both modes in the same file "without ceremony" but
-doesn't specify how names cross the boundary. If an author defines a kind in
-structured syntax, can they refer to it in natural language prose? If a natural-language
-sentence defines a room, can structured syntax reference it?
-
-The SPEC should confirm: both modes compile to the same underlying representation.
-Names defined in either mode are visible in both. The NL surface can refer to
-structured-syntax definitions by name, and vice versa.
-
-### D.4 — Package namespacing + rule cascade ordering (high)
-
-**SPEC refs:** §2.4, §5.1, §9.2
-
-When two packages contribute rules to the same rulebook, what determines their order?
-The cascade (§5.1) is well-defined for a single author's rules, but the SPEC doesn't
-say how package-contributed rules interleave.
-
-The SPEC should define a default ordering: author rules take precedence over package
-rules, which take precedence over standard library rules. Among packages, the order
-is determined by the project manifest (first-listed = highest priority). Authors can
-explicitly reorder rules, extending Inform 7's existing mechanism for rule placement
-("the etiquette rule is listed before the personality rule in the social interaction
-rules").
-
-### D.5 — Multiplayer + turn model (medium)
-
-**SPEC refs:** §8.4, §6.1, §6.3
-**Note:** §6.3.4 defines the turn loop as advancing "when the player acts (or, in
-multiplayer, when all players in a round have acted)" and §6.3.5 notes that clock rules
-execute authoritatively on the server in multiplayer. The definition of "the player" in
-multiplayer and "every turn" semantics remain unresolved here.
-
-§6.1 says "the turn" is the default scheduling unit. §8.4 says multiple players can
-share a world. But "the player" is a singular concept in Inform 7's model. What
-happens to "the player" in multiplayer? What about "every turn" rules — do they fire
-once per round or once per player-action?
-
-The SPEC should define: "the player" becomes "the current actor" during each player's
-action (similar to how Inform 7 handles NPCs acting via "try"). "Every turn" fires
-once per round (after all players have acted). A new "every player-turn" fires once
-per player-action. Existing Inform 7 stories, being single-player, behave identically.
-
-### D.6 — Embeddability + output protocol (deferrable)
-
-**SPEC refs:** §11.1, §8.1, §8.2
-**Note:** [ARCH.md — D6](ARCH.md#d6--output-boundary-semantic-stream-only) establishes
-that the semantic stream is Chord's sole output interface. The protocol defined here
-is therefore the *only* way any consumer — standalone reader, embedding host, or
-observer — receives output from a Chord story.
-
-§11.1 says stories are embeddable as libraries. §8.1 says output is a semantic stream.
-But the SPEC doesn't define the protocol for an embedding host to consume this stream.
-A chatbot framework embedding a Chord story needs to know: how do I send input? How
-do I receive output? How do I know when the story is waiting for input?
-
-The SPEC should define: the semantic stream is delivered asynchronously as typed
-events. A "prompt" event signals the story is waiting for input. A separate query
-channel allows the host to inspect world state (aligned with §10.2's REPL). The
-specific serialization format (JSON, protobuf, etc.) may be deferred, but the event
-types and lifecycle should be specified.
-
-### D.7 — Standard library extraction + backward compatibility (high)
+### D.7 — Standard library extraction (open — Phase 3)
 
 **SPEC refs:** §9.3, §12.1, §12.2
 
-§9.3 says the Standard Rules should become a package. §12.1 says legacy source texts
-compile without modification. But if the Standard Rules are a package, who includes
-them? Does the author have to declare a dependency, or is it implicit?
+The engine's built-in rules (`engine/src/rulebooks/`) are the proto-standard-library:
+taking, dropping, going, looking, examining, inventory, opening, closing, putting.
 
-The SPEC should define: the compiler implicitly includes the standard library (just as
-Inform 7 implicitly includes the Standard Rules). For legacy compatibility, the
-compiler pins to a frozen "legacy" version of the standard library that preserves
-Inform 7 semantics exactly. New Chord projects default to the latest version. Authors
-can declare a version in their project manifest. This means two editions of the
-standard library are maintained: legacy (frozen) and current (evolving).
+**Workaround:** The engine already supports pluggable rules:
+- `new Engine({ skipDefaultRules: true })` — skip all built-in rules
+- `engine.registerRule('verb', rule)` — register custom rules
+- The compiled story's `loadStory(engine)` function registers rules via this API
+
+Extraction to a formal package is Phase 3 scope. Per D7, the standard library evolves
+and authors adapt — no frozen legacy edition.
 
 ---
 
-## E. Authoring Surface Gaps (3 items)
+## E. Authoring Surface Gaps — ALL RESOLVED
 
-These are features the SPEC introduces at the *model* level but never shows at the
-*authoring* level. The SPEC's central commitment is that authors write natural language;
-these features currently have no natural-language face.
+### E.2 — Structured syntax design ✓ RESOLVED
 
-### E.1 — No natural language syntax for new type features (blocking)
+**Resolution:** Resolved by implementation. The Chord DSL defined in `MVP.md` and
+implemented in `compiler/src/parser.ts`. Examples in `engine/src/demo-story.ts` and
+`engine/test/stories/`.
 
-**SPEC refs:** §2.3
+---
 
-§2.3 introduces sum types, optional values, parameterized kinds, and first-class rules.
-These are powerful model-level features, but the SPEC provides no examples of how an
-author would define or use them in natural language. What does a sum type definition
-look like? How does an author pattern-match on one?
+## F. Deferred to Phase Roadmap
 
-Examples that need to exist in the SPEC:
+The following items were removed from this document because they describe design
+questions for features that do not yet exist. They will be addressed as part of their
+respective phase designs. See `doc/SPEC.md` for the phase roadmap.
 
-- **Sum type definition:** "A response is a kind of value. A response is either an
-  agreement carrying a belief or a refusal carrying a reason."
-- **Pattern matching:** "If the response is an agreement carrying a familiar belief..."
-- **Optional value:** "The hidden motive of a person is an optional text."
-- **Testing absence:** "If the hidden motive of Bob is absent..."
-- **Parameterized kind:** "A list of beliefs" / "a relation between people and
-  arguments" — are these just used in prose, or is there a definition syntax?
+- **Phase 1:** NL parser ambiguity resolution, progressive disclosure defaults
+- **Phase 2:** NL syntax for enhanced types (sum types, optionals, parameterized
+  kinds), vector similarity + open-world interaction, advanced feature composition
+  examples
+- **Phase 3:** Package namespacing + rule cascade ordering, FFI security model
+- **Deferred indefinitely:** Resource model (Wasm memory budgets, vector dimension
+  thresholds), multiplayer turn semantics, async embeddability protocol
 
-Without these examples, the type system is specified at the engine level but
-unspecified at the authoring level, which violates §1.1 (the author should feel they
-are building a world, not writing software).
+---
 
-### E.2 — Structured syntax has no concrete design (high)
+## G. Spec Gaps — Underspecified Features
+
+Features described conceptually in SPEC.md but lacking the concrete syntax,
+protocol definitions, or detail needed to implement them.
+
+### G.1 — Structured Syntax Mode
 
 **SPEC refs:** §2.2
+The spec describes an "escape hatch" where authors drop into structured syntax
+alongside natural language. Scattered `[annotation]` examples appear in §3.3.11,
+§3.4.6, and §6.3.9, but there is no unified grammar for structured mode — no
+entry/exit delimiters, no formal syntax, no interaction rules with the NL surface.
 
-§2.2 says structured syntax should be "minimal and declarative in character — closer
-to a configuration language or a logic language than to an imperative programming
-language." It says it should coexist with natural language "without ceremony." But
-it gives no examples of what structured syntax looks like.
+### G.2 — Sum Types (Enumerations with Associated Data)
 
-This is a major gap because the structured syntax is the escape hatch for every
-situation where natural language is insufficient. Its design determines:
+**SPEC refs:** §2.3
+The spec says a "response" might be "an agreement carrying a belief" or "a refusal
+carrying a reason." No declaration syntax, no pattern-matching syntax, no examples
+of how sum types compose with the rule system or conditions.
 
-- How rules with complex conditions are written.
-- How library authors define precise APIs.
-- What the NL/structured boundary delimiter is.
-- Whether it feels like part of the same system or a foreign intrusion.
+### G.3 — Parameterized Kinds
 
-At minimum, the SPEC should provide one or two examples of the same rule expressed in
-both natural language and structured syntax, showing the interplay.
+**SPEC refs:** §2.3
+"A list of beliefs" and "a relation between people and arguments" are mentioned as
+desirable types. No declaration syntax for kind parameters, no instantiation syntax,
+no type-checking rules.
 
-### E.3 — How do advanced features compose in a real story? (medium)
+### G.4 — First-Class Rules and Phrases
 
-**SPEC refs:** §13.1
+**SPEC refs:** §2.3
+Rules and phrases should be "passable as values." No syntax for declaring a
+rule-typed variable, passing a rule to a phrase, or invoking a rule value.
 
-§13.1 aspires to support "rich simulations of conceptual, social, and rhetorical
-systems." The SPEC introduces the building blocks (enhanced types, reactive rules,
-vector similarity, open-world properties, temporal state) but never shows them working
-together.
+### G.5 — Ontological Namespacing
 
-A single extended example — even a sketch — of how an author would write a story
-involving, say, a belief system with journaled trust, reactive rules on belief change,
-and vector similarity for finding related beliefs, would ground the entire spec. It
-would reveal whether the features compose naturally or create a complexity cliff that
-contradicts §1.3.
+**SPEC refs:** §2.4
+"Contextual disambiguation or author-chosen aliases" are mentioned. No syntax for
+declaring a namespace, importing a namespaced vocabulary, resolving collisions, or
+defining aliases. Critical dependency for the package system (§9).
 
-This doesn't need to be fully specified, but even a page of example source text in the
-SPEC would be enormously clarifying.
+### G.6 — Vector Similarity Query Syntax
+
+**SPEC refs:** §4.1–§4.5
+The spec defines the conceptual model (embeddings as index, not property; no fuzzy
+conditions) but provides no language-level syntax for: attaching embeddings to
+objects, writing similarity queries ("the 5 concepts most similar to X"), or
+integrating query results into rule conditions.
+
+### G.7 — Rule Provenance Query Syntax
+
+**SPEC refs:** §5.2
+Provenance metadata (source location, library, specificity score, rulebook position)
+is described. No syntax for inspecting this at runtime or in authored conditions.
+No specification of what the tooling API looks like.
+
+### G.8 — Compositional Rulebooks
+
+**SPEC refs:** §5.3
+"A social interaction rulebook might consult etiquette rules, then relationship
+rules, then personality rules." No syntax for declaring a composite rulebook,
+specifying consultation order, or controlling fall-through behavior.
+
+### G.9 — Semantic Output Stream Protocol
+
+**SPEC refs:** §8.1, §8.2
+The spec says the story emits "typed output events" — room descriptions, dialogue
+lines, prompts, etc. No format is defined: no event type catalog, no encoding
+(JSON, binary, protobuf), no transport mechanism, no versioning strategy.
+
+### G.10 — Structured Input Event Format
+
+**SPEC refs:** §8.3
+"Structured input events rather than raw text strings." No event schema, no
+enumeration of event types (text command, click, voice transcript), no
+normalization rules.
+
+### G.11 — Package Registry API and Format
+
+**SPEC refs:** §9.1, §9.2, §9.4
+Registries are URL-identified and provider-managed (per D3/A.5). But there is no
+package manifest format, no registry HTTP API, no dependency resolution algorithm,
+no versioning scheme (semver? something else?), and no package file structure.
+
+### G.12 — Foreign Function Interface
+
+**SPEC refs:** §11.2
+"Sandboxed and capability-gated." No calling convention, no capability declaration
+syntax, no sandbox implementation strategy, no host-side binding API. The FFI is
+referenced by §4.4 (embeddings) and §11.1 (embeddability) but never defined.
+
+### G.13 — Data Import/Export Format
+
+**SPEC refs:** §11.3
+"JSON, CSV, or similar." No schema for exported world state, no import validation
+rules, no round-trip guarantees.
+
+### G.14 — Continuous Time
+
+**SPEC refs:** §6.2, §6.3.5
+Mentioned as an opt-in mode requiring `[continuous-time: enabled]`. No detail on
+clock increment configuration, integration with the tick/turn hierarchy, or how
+continuous-time rules interact with discrete state changes.
+
+### G.15 — Phantom Appendix Sections
+
+**SPEC refs:** throughout
+The spec references §C.5 (reactive rule resolution order), §C.6 (save/restore),
+§C.8 (progressive disclosure), §D.1 (reactive rules + temporal state), and §D.5
+(multiplayer) — but these sections were never written into SPEC.md. Some are
+partially addressed by ARCH.md decisions (C.5→D9, C.6→D10) but the spec text
+itself has dangling cross-references.
+
+### G.16 — Formal Grammar
+
+**SPEC refs:** §2 (entire section)
+The main SPEC.md describes language features in prose but never provides a formal
+grammar (BNF/EBNF). MVP.md contains grammar sketches, but these are in a separate
+document and cover only the MVP subset.
+
+### G.17 — Runtime Error Handling
+
+**SPEC refs:** §5.2 (provenance), ARCH.md D8 (fail-safe principle)
+D8 establishes the principle (fail-safe with provenance) but the spec doesn't
+address concrete runtime failure modes: what happens when a rule body throws an
+exception, when the database is corrupted, when an FFI call fails, or when the
+event queue overflows.
+
+### G.18 — Multiplayer
+
+**SPEC refs:** §8.4, §6.3.4 (D.5 reference), §6.3.5
+Multiplayer is referenced in scheduling ("when all players in a round have acted"),
+clock rules ("execute authoritatively on the server"), and I/O ("multiple clients
+can connect"). None of these are specified beyond a single sentence each.
+
+---
+
+## H. Spec Inconsistencies
+
+Internal contradictions or tensions within SPEC.md that need resolution.
+
+### H.1 — Compatibility Claims
+
+**SPEC refs:** §1.2, §12.1
+§1.2 says "The Chord compiler accepts valid Inform 7 source texts and aims for
+broad behavioral compatibility." §12.1 says "Enhanced type features (optionals,
+sum types, parameterized kinds) apply uniformly and may require minor adaptation
+of legacy code." These are in tension: the compiler cannot both accept all valid
+I7 source and require adaptation. D7 (softened guarantee) resolves the design
+intent but the spec text itself still contains both claims.
+
+### H.2 — Overloaded "Absent" Semantics
+
+**SPEC refs:** §3.3 (three-state model), §3.4.5 (beyond retention depth)
+§3.3 defines "absent" as "the author explicitly said has no X" — a deliberate
+narrative statement. §3.4.5 says history queries beyond retention depth return
+"absent." These are semantically different: one is authorial intent, the other is
+data loss from a sliding window. Reusing the same state conflates them.
+
+### H.3 — Compile-Time Embeddings vs. Runtime Similarity
+
+**SPEC refs:** §4.4, §4.5
+§4.4 says embeddings are generated at design/compile time, not runtime, with no
+runtime dependency on external services. §4.5 describes finding "the most
+conceptually adjacent beliefs in an NPC's mind when the player introduces a new
+idea." If embeddings are baked in at compile time, dynamically created objects or
+player-introduced concepts cannot have embeddings. The spec doesn't address this.
+
+### H.4 — WebAssembly Target vs. TypeScript Implementation
+
+**SPEC refs:** §7.1, §7.2
+The spec names WebAssembly as the primary compilation target. The actual
+implementation compiles Chord source to TypeScript that runs on Node.js with
+libsql. This is a pragmatic MVP choice but the spec and implementation diverge.
+The spec should acknowledge TypeScript/Node as the initial target with Wasm as
+a future goal, or the implementation roadmap should include a Wasm migration.
+
+### H.5 — No Default Frontend
+
+**SPEC refs:** §8.2
+"Chord does not include or specify a default frontend." For the platform to be
+usable, at least one reference reader must exist. The spec should distinguish
+between "Chord the compiler/runtime doesn't bundle a frontend" and "no frontend
+will be provided at all." A reference CLI reader is a practical necessity.
+
+### H.6 — Dual SPEC Files
+
+**SPEC refs:** root `SPEC.md`, `doc/SPEC.md`
+Two spec documents exist with overlapping but inconsistent scope. `doc/SPEC.md`
+is a brief phase roadmap (Phases 0–3). Root `SPEC.md` is the comprehensive
+specification. The phase numbers in `doc/SPEC.md` don't map cleanly to the section
+numbers in root `SPEC.md`. One should be canonical; the other should be removed
+or clearly subordinated.
+
+### H.7 — "Unknown Never Matches" vs. Reactive Transition Semantics
+
+**SPEC refs:** §3.3.5, §3.3.9
+§3.3.5 establishes that unknown values never match conditions. §3.3.9 says
+"becomes [condition]" fires when a property transitions from unknown to a
+satisfying value — because the *transition* is what's being tested, not the
+current value alone. This is logically consistent but the interaction is subtle.
+The spec doesn't explicitly reconcile these two rules or explain why they don't
+conflict. An author reading §3.3.5 in isolation would reasonably expect that
+unknown→2 would not fire "becomes less than 3."
