@@ -145,6 +145,18 @@ export const DIRECTIONS = [
 
 export type Direction = typeof DIRECTIONS[number];
 
+// ---------------------------------------------------------------------------
+// Error context (provenance tracking per ARCH.md D8)
+// ---------------------------------------------------------------------------
+
+export interface ErrorContext {
+  ruleName?: string;
+  phase?: Phase;
+  verb?: string;
+  turnNumber?: number;
+  detail: string;
+}
+
 export const REVERSE_DIRECTIONS: Record<Direction, Direction> = {
   north: 'south',
   south: 'north',

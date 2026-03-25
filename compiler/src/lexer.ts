@@ -18,6 +18,9 @@ export type TokenType =
   | 'DOT'
   | 'COLON'
   | 'SEMICOLON'
+  | 'COMMA'
+  | 'LBRACKET'
+  | 'RBRACKET'
   | 'COMPARATOR'
   | 'NEWLINE'
   | 'INDENT'
@@ -163,6 +166,25 @@ export function tokenize(source: string): Token[] {
           pos++; col++;
         }
         tokens.push({ type: 'WORD', value: word, loc: { line, col: startCol } });
+        continue;
+      }
+
+      // Brackets (for structured annotations)
+      if (content[pos] === '[') {
+        tokens.push({ type: 'LBRACKET', value: '[', loc: { line, col } });
+        pos++; col++;
+        continue;
+      }
+      if (content[pos] === ']') {
+        tokens.push({ type: 'RBRACKET', value: ']', loc: { line, col } });
+        pos++; col++;
+        continue;
+      }
+
+      // Comma (for annotation entries)
+      if (content[pos] === ',') {
+        tokens.push({ type: 'COMMA', value: ',', loc: { line, col } });
+        pos++; col++;
         continue;
       }
 

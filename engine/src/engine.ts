@@ -15,6 +15,7 @@ import type {
   EveryTurnRule,
   SceneDefinition,
   Thing,
+  ErrorContext,
 } from './types.js';
 
 export interface EngineOptions {
@@ -129,6 +130,20 @@ export class Engine {
   /** Generate a "look" description of the player's current location. */
   look(): string[] {
     return this.runtime.turn('look');
+  }
+
+  // -----------------------------------------------------------------------
+  // Error reporting API (ARCH.md D8 — fail-safe with provenance)
+  // -----------------------------------------------------------------------
+
+  /** Get all runtime errors logged since last clear. */
+  getRuntimeErrors(): ErrorContext[] {
+    return this.runtime.getErrors();
+  }
+
+  /** Clear the runtime error log. */
+  clearRuntimeErrors(): void {
+    this.runtime.clearErrors();
   }
 
   /** Shut down the engine and close the database. */

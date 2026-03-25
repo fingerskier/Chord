@@ -6,10 +6,13 @@
 
 import type {
   StoryFile,
+  Declaration,
   RuleNode,
   EveryTurnRuleNode,
   NounPattern,
   Condition,
+  Diagnostic,
+  Annotation,
 } from './ast.js';
 import { nameToId } from './utils.js';
 import { CompileError } from './parser.js';
@@ -34,6 +37,7 @@ export interface AnalysisResult {
   rulePriorities: Map<RuleNode, number>;
   everyTurnPriorities: Map<EveryTurnRuleNode, number>;
   errors: CompileError[];
+  diagnostics: Diagnostic[];
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +46,7 @@ export interface AnalysisResult {
 
 export function analyze(ast: StoryFile): AnalysisResult {
   const errors: CompileError[] = [];
+  const diagnostics: Diagnostic[] = [];
   const symbols: SymbolTable = {
     kinds: new Map([
       ['thing', ''],
@@ -95,6 +100,12 @@ export function analyze(ast: StoryFile): AnalysisResult {
           `Unknown kind "${decl.kind}". Did you declare it with "A ${decl.kind} is a kind of thing."?`,
           decl.loc,
         ));
+        diagnostics.push({
+          severity: 'error',
+          message: `Unknown kind "${decl.kind}".`,
+          loc: decl.loc,
+          suggestion: `Declare it with: A ${decl.kind} is a kind of thing.`,
+        });
       }
       symbols.objects.set(decl.name.toLowerCase(), {
         id,
@@ -104,7 +115,25 @@ export function analyze(ast: StoryFile): AnalysisResult {
     }
   }
 
-  // Pass 4: Compute rule priorities
+  // Pass 4: Validate annotations
+  const validKeys = new Set([
+    'open-world', 'journal', 'depth', 'schedule', 'interval',
+    'unknown-default', 'name', 'import', 'alias', 'block',
+  ]);
+  for (const decl of ast.declarations) {
+    validateAnnotations(decl.annotations, validKeys, diagnostics);
+  }
+  for (const rule of ast.rules) {
+    validateAnnotations(rule.annotations, validKeys, diagnostics);
+  }
+  for (const rule of ast.everyTurnRules) {
+    validateAnnotations(rule.annotations, validKeys, diagnostics);
+  }
+  for (const scene of ast.scenes) {
+    validateAnnotations(scene.annotations, validKeys, diagnostics);
+  }
+
+  // Pass 5: Compute rule priorities
   const rulePriorities = new Map<RuleNode, number>();
   for (const rule of ast.rules) {
     rulePriorities.set(rule, computeRulePriority(rule, symbols));
@@ -115,7 +144,7 @@ export function analyze(ast: StoryFile): AnalysisResult {
     everyTurnPriorities.set(rule, computeEveryTurnPriority(rule));
   }
 
-  return { symbols, rulePriorities, everyTurnPriorities, errors };
+  return { symbols, rulePriorities, everyTurnPriorities, errors, diagnostics };
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +205,30 @@ function scoreConditions(conditions: Condition[]): number {
     }
   }
   return score;
+}
+
+// ---------------------------------------------------------------------------
+// Annotation validation
+// ---------------------------------------------------------------------------
+
+function validateAnnotations(
+  annotations: Annotation[] | undefined,
+  validKeys: Set<string>,
+  diagnostics: Diagnostic[],
+): void {
+  if (!annotations) return;
+  for (const ann of annotations) {
+    for (const entry of ann.entries) {
+      if (!validKeys.has(entry.key.toLowerCase())) {
+        diagnostics.push({
+          severity: 'warning',
+          message: `Unknown annotation key "${entry.key}".`,
+          loc: ann.loc,
+          suggestion: `Known keys: ${[...validKeys].filter(k => k !== 'block').join(', ')}`,
+        });
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

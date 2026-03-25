@@ -168,4 +168,78 @@ describe('parser', () => {
       expect(ast.sceneHandlers[0].event).toBe('ends');
     });
   });
+
+  describe('annotations', () => {
+    it('parses inline annotation before a declaration', () => {
+      const source = `[open-world: true]
+A person has number called loyalty.`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      expect(ast.declarations).toHaveLength(1);
+      const decl = ast.declarations[0];
+      expect(decl.annotations).toBeDefined();
+      expect(decl.annotations!).toHaveLength(1);
+      expect(decl.annotations![0].entries[0].key).toBe('open-world');
+      expect(decl.annotations![0].entries[0].value).toBe('true');
+    });
+
+    it('parses multi-entry annotation', () => {
+      const source = `[journal: enabled, depth: 10]
+A person has number called suspicion.`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      const decl = ast.declarations[0];
+      expect(decl.annotations).toBeDefined();
+      expect(decl.annotations![0].entries).toHaveLength(2);
+      expect(decl.annotations![0].entries[0].key).toBe('journal');
+      expect(decl.annotations![0].entries[1].key).toBe('depth');
+      expect(decl.annotations![0].entries[1].value).toBe('10');
+    });
+
+    it('parses annotation with quoted string value', () => {
+      const source = `[name: "Every Turn"]
+The Hall is a room.`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      const decl = ast.declarations[0];
+      expect(decl.annotations![0].entries[0].key).toBe('name');
+      expect(decl.annotations![0].entries[0].value).toBe('Every Turn');
+    });
+
+    it('parses annotation before a rule', () => {
+      const source = `[schedule: clock]
+After taking the lamp:
+    say "Got it."`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      expect(ast.rules).toHaveLength(1);
+      expect(ast.rules[0].annotations).toBeDefined();
+      expect(ast.rules[0].annotations![0].entries[0].key).toBe('schedule');
+    });
+
+    it('unannotated code still works identically', () => {
+      const source = `A lamp is a kind of thing.
+The Hall is a room.`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      expect(ast.declarations).toHaveLength(2);
+      expect(ast.declarations[0].annotations).toBeUndefined();
+      expect(ast.declarations[1].annotations).toBeUndefined();
+    });
+
+    it('parses block annotations', () => {
+      const source = `[begin structured]
+A lamp is a kind of thing.
+The Hall is a room.
+[end structured]`;
+      const { ast, errors } = parse(source);
+      expect(errors).toHaveLength(0);
+      expect(ast.declarations).toHaveLength(2);
+      // Both declarations should have the block annotation
+      expect(ast.declarations[0].annotations).toBeDefined();
+      expect(ast.declarations[0].annotations![0].entries[0].key).toBe('block');
+      expect(ast.declarations[0].annotations![0].entries[0].value).toBe('structured');
+      expect(ast.declarations[1].annotations).toBeDefined();
+    });
+  });
 });

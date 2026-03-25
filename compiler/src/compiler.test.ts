@@ -104,6 +104,43 @@ When Darkness ends:
     expect(result.ast).toBeTruthy();
   });
 
+  it('returns diagnostics array', () => {
+    const source = `The Hall is a room.`;
+    const result = compile(source);
+    expect(result.diagnostics).toBeDefined();
+    expect(Array.isArray(result.diagnostics)).toBe(true);
+  });
+
+  it('compiles annotated source without errors', () => {
+    const source = `[open-world: true]
+A person has number called loyalty.
+The Hall is a room.`;
+    const result = compile(source);
+    expect(result.errors).toHaveLength(0);
+    expect(result.code).toBeTruthy();
+  });
+
+  it('emits warning diagnostic for unknown annotation key', () => {
+    const source = `[bogus-key: foo]
+The Hall is a room.`;
+    const result = compile(source);
+    expect(result.errors).toHaveLength(0); // not an error, just a warning
+    expect(result.diagnostics.some(d =>
+      d.severity === 'warning' && d.message.includes('bogus-key')
+    )).toBe(true);
+  });
+
+  it('emits error diagnostic for unknown kind', () => {
+    const source = `The Widget is a gizmo.`;
+    const result = compile(source);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+    const diag = result.diagnostics[0];
+    expect(diag.severity).toBe('error');
+    expect(diag.message).toContain('gizmo');
+    expect(diag.suggestion).toBeDefined();
+  });
+
   it('full dark cave golden test produces valid TypeScript', () => {
     const source = fs.readFileSync(path.join(goldenDir, 'dark-cave.chord'), 'utf-8');
     const result = compile(source);

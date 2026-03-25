@@ -43,6 +43,7 @@ export interface KindDecl {
   type: 'kind_decl';
   name: string;
   parent: string;
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -51,6 +52,7 @@ export interface PropertyDecl {
   kindName: string;
   propertyType: 'truth_state' | 'number' | 'text';
   propertyName: string;
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -60,6 +62,7 @@ export interface DefaultDecl {
   propertyName: string;
   value: string;
   negated: boolean; // "is usually not lit" → negated=true, value="lit"
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -69,6 +72,7 @@ export interface ObjectDecl {
   kind: string;
   location?: string;      // "in The Dark Cave" → "The Dark Cave"
   description?: string;   // quoted string
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -77,6 +81,7 @@ export interface RelationDecl {
   subjectName: string;
   direction: string;
   objectName: string;
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -93,6 +98,7 @@ export interface RuleNode {
   nounPattern: NounPattern;
   conditions: Condition[];
   body: Statement[];
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -109,6 +115,7 @@ export interface EveryTurnRuleNode {
   type: 'every_turn_rule';
   conditions: Condition[];
   body: Statement[];
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -121,6 +128,7 @@ export interface SceneNode {
   name: string;
   beginsWhen: SceneCondition;
   endsWhen: SceneCondition;
+  annotations?: Annotation[];
   loc: SourceLocation;
 }
 
@@ -219,4 +227,32 @@ export interface RemoveStatement {
 export interface StopStatement {
   type: 'stop';
   loc: SourceLocation;
+}
+
+// ---------------------------------------------------------------------------
+// Annotations (structured syntax per SPEC §2.2.1)
+// ---------------------------------------------------------------------------
+
+export interface AnnotationEntry {
+  key: string;
+  value: string;
+}
+
+export interface Annotation {
+  type: 'annotation';
+  entries: AnnotationEntry[];
+  loc: SourceLocation;
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics (graduated severity per ARCH.md D8 / SPEC §1.3.1)
+// ---------------------------------------------------------------------------
+
+export type DiagnosticSeverity = 'informational' | 'suggestion' | 'warning' | 'error';
+
+export interface Diagnostic {
+  severity: DiagnosticSeverity;
+  message: string;
+  loc: SourceLocation;
+  suggestion?: string;
 }

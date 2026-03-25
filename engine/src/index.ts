@@ -50,6 +50,7 @@ export type {
   Rulebook,
   RulebookRegistry as RulebookRegistryInterface,
   Direction,
+  ErrorContext,
 } from './types.js';
 
 export { DIRECTIONS, REVERSE_DIRECTIONS } from './types.js';

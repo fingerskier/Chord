@@ -6,7 +6,7 @@ import { tokenize } from './lexer.js';
 import { Parser, CompileError } from './parser.js';
 import { analyze } from './analyzer.js';
 import { generate } from './codegen.js';
-import type { StoryFile } from './ast.js';
+import type { StoryFile, Diagnostic } from './ast.js';
 
 export interface CompileResult {
   /** Generated TypeScript source code. Empty string if errors occurred. */
@@ -15,6 +15,8 @@ export interface CompileResult {
   ast: StoryFile | null;
   /** Compilation errors. */
   errors: CompileError[];
+  /** Graduated diagnostics (informational, suggestion, warning, error). */
+  diagnostics: Diagnostic[];
 }
 
 export interface CompileOptions {
@@ -41,7 +43,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   allErrors.push(...parseErrors);
 
   if (allErrors.length > 0 && !ast) {
-    return { code: '', ast: null, errors: allErrors };
+    return { code: '', ast: null, errors: allErrors, diagnostics: [] };
   }
 
   // Analyze
@@ -49,11 +51,11 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   allErrors.push(...analysis.errors);
 
   if (options.checkOnly || allErrors.length > 0) {
-    return { code: '', ast, errors: allErrors };
+    return { code: '', ast, errors: allErrors, diagnostics: analysis.diagnostics };
   }
 
   // Generate
   const code = generate(ast, analysis);
 
-  return { code, ast, errors: [] };
+  return { code, ast, errors: [], diagnostics: analysis.diagnostics };
 }

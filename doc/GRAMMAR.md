@@ -31,6 +31,9 @@ NUMBER         = [ "-" ] digit { digit } ;
 DOT            = "." ;
 COLON          = ":" ;
 SEMICOLON      = ";" ;
+COMMA          = "," ;
+LBRACKET       = "[" ;
+RBRACKET       = "]" ;
 COMPARATOR     = ">" | "<" | ">=" | "<=" | "==" | "!=" ;
 NEWLINE        = line_ending ;
 INDENT         = (* indentation increase *) ;
@@ -56,14 +59,44 @@ story_file     = [ title_line ] { top_level_item } EOF ;
 
 title_line     = QUOTED_STRING [ "by" name ] DOT ;
 
-top_level_item = declaration
+top_level_item = { annotation } ( declaration
                | rule
                | every_turn_rule
                | scene_declaration
-               | scene_handler ;
+               | scene_handler ) ;
 ```
 
-### 2.2 Declarations
+### 2.2 Annotations (SPEC §2.2.1)
+
+```ebnf
+annotation       = inline_annotation
+                 | block_begin
+                 | block_end ;
+
+inline_annotation = LBRACKET annotation_entry { COMMA annotation_entry } RBRACKET ;
+
+annotation_entry  = WORD COLON annotation_value ;
+
+annotation_value  = QUOTED_STRING
+                  | NUMBER
+                  | WORD { WORD } ;
+
+block_begin       = LBRACKET "begin" WORD RBRACKET ;
+                  (* e.g. [begin structured] *)
+
+block_end         = LBRACKET "end" WORD RBRACKET ;
+                  (* e.g. [end structured] *)
+```
+
+Inline annotations attach to the immediately following declaration or rule.
+Block annotations (`[begin structured]`...`[end structured]`) apply to all
+items within the block. Annotations are optional metadata; they do not change
+the NL parsing, only the compiler's interpretation.
+
+**Known annotation keys:** `open-world`, `journal`, `depth`, `schedule`,
+`interval`, `unknown-default`, `name`, `import`, `alias`.
+
+### 2.3 Declarations
 
 ```ebnf
 declaration    = kind_decl
@@ -252,7 +285,8 @@ yet implemented** in the parser:
 
 - `try_stmt` — `"try" action_pattern`
 - `if_stmt` — `"if" condition ":" INDENT body [ "otherwise:" INDENT body ]`
-- Text substitutions — `"[" sub_expr "]"` within quoted strings
+- Text substitutions within quoted strings (note: brackets inside quoted strings
+  are consumed as string content, not as LBRACKET/RBRACKET tokens):
   - List substitutions: `"[a list of" name "in" expression "]"`
   - Conditional substitutions: `"[if" condition "]" text "[otherwise]" text "[end if]"`
   - Property substitutions: `"[the" name "of" expression "]"`

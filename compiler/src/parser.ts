@@ -23,6 +23,8 @@ import type {
   Condition,
   Statement,
   SourceLocation,
+  Annotation,
+  AnnotationEntry,
 } from './ast.js';
 import { DIRECTIONS, gerundToInfinitive } from './utils.js';
 
@@ -46,6 +48,7 @@ export class CompileError extends Error {
 export class Parser {
   private pos = 0;
   private errors: CompileError[] = [];
+  private blockAnnotations: Annotation[] = [];
 
   constructor(private tokens: Token[]) {}
 
@@ -85,6 +88,17 @@ export class Parser {
     this.skipNewlines();
     if (this.isAtEnd()) return;
 
+    // Collect inline annotations before the next statement
+    const annotations: Annotation[] = [...this.blockAnnotations];
+    while (this.checkToken('LBRACKET')) {
+      const ann = this.parseAnnotation();
+      if (!ann) break; // block begin/end handled internally
+      annotations.push(ann);
+      this.skipNewlines();
+    }
+
+    if (this.isAtEnd()) return;
+
     const token = this.peek();
 
     // Title line: "Title" by Author (a quoted string followed by "by")
@@ -108,31 +122,43 @@ export class Parser {
 
     // Rule phases
     if (word === 'before') {
-      ast.rules.push(this.parseRule('before'));
+      const rule = this.parseRule('before');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
     if (word === 'instead') {
       this.advance(); // "instead"
       this.expectWord('of');
-      ast.rules.push(this.parseRuleBody('instead'));
+      const rule = this.parseRuleBody('instead');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
     if (word === 'check') {
-      ast.rules.push(this.parseRule('check'));
+      const rule = this.parseRule('check');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
     if (word === 'carry') {
       this.advance(); // "carry"
       this.expectWord('out');
-      ast.rules.push(this.parseRuleBody('carry_out'));
+      const rule = this.parseRuleBody('carry_out');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
     if (word === 'after') {
-      ast.rules.push(this.parseRule('after'));
+      const rule = this.parseRule('after');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
     if (word === 'report') {
-      ast.rules.push(this.parseRule('report'));
+      const rule = this.parseRule('report');
+      if (annotations.length) rule.annotations = annotations;
+      ast.rules.push(rule);
       return;
     }
 
@@ -140,7 +166,9 @@ export class Parser {
     if (word === 'every') {
       this.advance(); // "every"
       this.expectWord('turn');
-      ast.everyTurnRules.push(this.parseEveryTurnRule());
+      const rule = this.parseEveryTurnRule();
+      if (annotations.length) rule.annotations = annotations;
+      ast.everyTurnRules.push(rule);
       return;
     }
 
@@ -158,6 +186,7 @@ export class Parser {
     if (word === 'a' || word === 'an' || word === 'the' || word === 'some') {
       const decl = this.parseDeclaration(ast);
       if (decl) {
+        if (annotations.length) decl.annotations = annotations;
         ast.declarations.push(decl);
       }
       return;
@@ -169,6 +198,7 @@ export class Parser {
     if (/^[A-Z]/.test(token.value)) {
       const decl = this.parseCapitalizedStatement(ast);
       if (decl) {
+        if (annotations.length) decl.annotations = annotations;
         ast.declarations.push(decl);
       }
       return;
@@ -176,6 +206,78 @@ export class Parser {
 
     // Unknown — skip
     this.advance();
+  }
+
+  // -----------------------------------------------------------------------
+  // Annotation parsing (SPEC §2.2.1)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Parse a `[key: value, ...]` annotation.
+   * Returns null if this is a block begin/end (handled via blockAnnotations stack).
+   */
+  private parseAnnotation(): Annotation | null {
+    const loc = this.peek().loc;
+    this.advance(); // consume LBRACKET
+
+    // Check for block annotations: [begin structured] / [end structured]
+    if (this.checkWord('begin')) {
+      this.advance(); // "begin"
+      const mode = this.expectWordAny();
+      this.expectToken('RBRACKET');
+      // Push a marker annotation onto the block stack
+      this.blockAnnotations.push({
+        type: 'annotation',
+        entries: [{ key: 'block', value: mode }],
+        loc,
+      });
+      return null;
+    }
+    if (this.checkWord('end')) {
+      this.advance(); // "end"
+      this.expectWordAny(); // consume mode name
+      this.expectToken('RBRACKET');
+      if (this.blockAnnotations.length > 0) {
+        this.blockAnnotations.pop();
+      }
+      return null;
+    }
+
+    // Parse key: value entries
+    const entries: AnnotationEntry[] = [];
+    entries.push(this.parseAnnotationEntry());
+
+    while (this.checkToken('COMMA')) {
+      this.advance(); // consume comma
+      entries.push(this.parseAnnotationEntry());
+    }
+
+    this.expectToken('RBRACKET');
+    return { type: 'annotation', entries, loc };
+  }
+
+  private parseAnnotationEntry(): AnnotationEntry {
+    const key = this.expectWordAny();
+    this.expectToken('COLON');
+    const value = this.consumeAnnotationValue();
+    return { key, value };
+  }
+
+  /** Consume an annotation value: quoted string, number, or words up to comma/rbracket. */
+  private consumeAnnotationValue(): string {
+    if (this.peek().type === 'QUOTED_STRING') {
+      return this.advance().value;
+    }
+    if (this.peek().type === 'NUMBER') {
+      return this.advance().value;
+    }
+    // Consume words until a non-WORD token (comma, rbracket, newline, etc.)
+    let value = '';
+    while (!this.isAtEnd() && this.peek().type === 'WORD') {
+      if (value) value += ' ';
+      value += this.advance().value;
+    }
+    return value;
   }
 
   // -----------------------------------------------------------------------

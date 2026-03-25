@@ -56,4 +56,25 @@ After dropping:
     const comps = tokens.filter(t => t.type === 'COMPARATOR');
     expect(comps.map(t => t.value)).toEqual(['>', '>=', '<', '<=', '!=', '=']);
   });
+
+  it('tokenizes brackets and commas for annotations', () => {
+    const tokens = tokenize('[open-world: true, depth: 10]');
+    const typeList = types(tokens);
+    expect(typeList).toContain('LBRACKET');
+    expect(typeList).toContain('RBRACKET');
+    expect(typeList).toContain('COMMA');
+    expect(typeList).toContain('COLON');
+    // Verify order: [ WORD : WORD , WORD : NUMBER ]
+    const meaningful = tokens.filter(t => t.type !== 'NEWLINE' && t.type !== 'EOF');
+    expect(meaningful[0].type).toBe('LBRACKET');
+    expect(meaningful[meaningful.length - 1].type).toBe('RBRACKET');
+  });
+
+  it('does not tokenize brackets inside quoted strings', () => {
+    const tokens = tokenize('"[hello world]"');
+    expect(tokens.some(t => t.type === 'LBRACKET')).toBe(false);
+    expect(tokens.some(t => t.type === 'RBRACKET')).toBe(false);
+    const str = tokens.find(t => t.type === 'QUOTED_STRING');
+    expect(str?.value).toBe('[hello world]');
+  });
 });

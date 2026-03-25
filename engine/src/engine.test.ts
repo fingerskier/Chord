@@ -230,4 +230,75 @@ describe('Engine', () => {
       expect(output.join('\n')).toContain('Dark Cave');
     });
   });
+
+  describe('error boundaries (D8 fail-safe)', () => {
+    it('survives a throwing rule and continues cascade', () => {
+      engine.registerRule('take', {
+        priority: 1000,
+        phase: 'before',
+        name: 'exploding-rule',
+        condition: () => true,
+        body: () => { throw new Error('BOOM'); },
+      });
+
+      engine.registerRule('take', {
+        priority: 500,
+        phase: 'after',
+        name: 'after-take-msg',
+        condition: (_db, action) => action.noun === 'brass_lamp',
+        body: () => ({ outcome: 'continue' as const, output: 'You took it!' }),
+      });
+
+      const output = engine.turn('take lamp');
+      expect(output).toBeDefined();
+      expect(output.join('\n')).toContain('You took it!');
+    });
+
+    it('logs errors with provenance', () => {
+      engine.registerRule('take', {
+        priority: 1000,
+        phase: 'before',
+        name: 'bad-rule',
+        condition: () => true,
+        body: () => { throw new Error('test error'); },
+      });
+
+      engine.turn('take lamp');
+      const errors = engine.getRuntimeErrors();
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].ruleName).toBe('bad-rule');
+      expect(errors[0].phase).toBe('before');
+      expect(errors[0].verb).toBe('take');
+      expect(errors[0].detail).toContain('test error');
+    });
+
+    it('clearRuntimeErrors resets the log', () => {
+      engine.registerRule('take', {
+        priority: 1000,
+        phase: 'before',
+        name: 'failing-rule',
+        condition: () => true,
+        body: () => { throw new Error('fail'); },
+      });
+
+      engine.turn('take lamp');
+      expect(engine.getRuntimeErrors().length).toBeGreaterThan(0);
+      engine.clearRuntimeErrors();
+      expect(engine.getRuntimeErrors()).toHaveLength(0);
+    });
+
+    it('handles throwing every-turn rules gracefully', () => {
+      engine.registerEveryTurnRule({
+        priority: 100,
+        name: 'bad-every-turn',
+        condition: () => true,
+        body: () => { throw new Error('every-turn boom'); },
+      });
+
+      const output = engine.turn('look');
+      expect(output).toBeDefined();
+      const errors = engine.getRuntimeErrors();
+      expect(errors.some(e => e.detail.includes('every-turn boom'))).toBe(true);
+    });
+  });
 });
