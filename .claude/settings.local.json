@@ -29,7 +29,10 @@
       "mcp__reqall-net__upsert_link",
       "Bash(npm test:*)",
       "mcp__claude_ai_Reqall__get_record",
-      "mcp__claude_ai_Reqall__upsert_record"
+      "mcp__claude_ai_Reqall__upsert_record",
+      "mcp__plugin_reqall_reqall__upsert_project",
+      "mcp__plugin_reqall_reqall__search",
+      "mcp__plugin_reqall_reqall__list_records"
     ]
   }
 }
