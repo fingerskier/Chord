@@ -271,12 +271,13 @@ The spec references §C.5 (reactive rule resolution order), §C.6 (save/restore)
 partially addressed by ARCH.md decisions (C.5→D9, C.6→D10) but the spec text
 itself has dangling cross-references.
 
-### G.16 — Formal Grammar
+### G.16 — Formal Grammar ✓ RESOLVED
 
 **SPEC refs:** §2 (entire section)
-The main SPEC.md describes language features in prose but never provides a formal
-grammar (BNF/EBNF). MVP.md contains grammar sketches, but these are in a separate
-document and cover only the MVP subset.
+**Resolution:** `doc/GRAMMAR.md` provides a complete EBNF grammar for the Phase 0 / MVP
+Chord DSL, derived from `MVP.md` sketches and `compiler/src/parser.ts`. The grammar
+document is designated as the single source of truth; the parser should be updated to
+match when they diverge.
 
 ### G.17 — Runtime Error Handling
 
@@ -301,15 +302,13 @@ host-dependent and intentionally unspecified.
 
 Internal contradictions or tensions within SPEC.md that need resolution.
 
-### H.1 — Compatibility Claims
+### H.1 — Compatibility Claims ✓ RESOLVED
 
 **SPEC refs:** §1.2, §12.1
-§1.2 says "The Chord compiler accepts valid Inform 7 source texts and aims for
-broad behavioral compatibility." §12.1 says "Enhanced type features (optionals,
-sum types, parameterized kinds) apply uniformly and may require minor adaptation
-of legacy code." These are in tension: the compiler cannot both accept all valid
-I7 source and require adaptation. D7 (softened guarantee) resolves the design
-intent but the spec text itself still contains both claims.
+**Resolution:** §1.2 now explicitly references §12.1 and states that full backward
+compatibility is not guaranteed. Both sections use consistent language: "broad
+source-level compatibility" with "minor adaptation" expected. The softened guarantee
+from D7 is reflected in the spec text.
 
 ### H.2 — Overloaded "Absent" Semantics
 
@@ -328,14 +327,13 @@ conceptually adjacent beliefs in an NPC's mind when the player introduces a new
 idea." If embeddings are baked in at compile time, dynamically created objects or
 player-introduced concepts cannot have embeddings. The spec doesn't address this.
 
-### H.4 — WebAssembly Target vs. TypeScript Implementation
+### H.4 — WebAssembly Target vs. TypeScript Implementation ✓ RESOLVED
 
 **SPEC refs:** §7.1, §7.2
-The spec names WebAssembly as the primary compilation target. The actual
-implementation compiles Chord source to TypeScript that runs on Node.js with
-libsql. This is a pragmatic MVP choice but the spec and implementation diverge.
-The spec should acknowledge TypeScript/Node as the initial target with Wasm as
-a future goal, or the implementation roadmap should include a Wasm migration.
+**Resolution:** SPEC.md §7.1 renamed to "Compilation Targets" and now acknowledges
+TypeScript/Node.js as the current shipping target, with WebAssembly documented as
+a future design goal. §7.4 resource constraints are explicitly scoped to the
+future Wasm phase.
 
 ### H.5 — No Default Frontend
 
@@ -345,14 +343,12 @@ usable, at least one reference reader must exist. The spec should distinguish
 between "Chord the compiler/runtime doesn't bundle a frontend" and "no frontend
 will be provided at all." A reference CLI reader is a practical necessity.
 
-### H.6 — Dual SPEC Files
+### H.6 — Dual SPEC Files ✓ RESOLVED
 
 **SPEC refs:** root `SPEC.md`, `doc/SPEC.md`
-Two spec documents exist with overlapping but inconsistent scope. `doc/SPEC.md`
-is a brief phase roadmap (Phases 0–3). Root `SPEC.md` is the comprehensive
-specification. The phase numbers in `doc/SPEC.md` don't map cleanly to the section
-numbers in root `SPEC.md`. One should be canonical; the other should be removed
-or clearly subordinated.
+**Resolution:** Root `SPEC.md` is canonical. `doc/SPEC.md` has been rewritten as a
+brief roadmap summary that explicitly points to the root spec and to `IMPLEMENT.md`
+for detailed phase plans. No overlapping content remains.
 
 ### H.7 — "Unknown Never Matches" vs. Reactive Transition Semantics
 

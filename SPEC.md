@@ -26,8 +26,8 @@ The author should always feel that they are building a world, not writing softwa
 
 ### 1.2 Source Compatibility, Not Machinery
 
-The Chord compiler accepts valid Inform 7 source texts and aims for broad behavioral compatibility.
-However, enhanced type features (optionals, sum types, parameterized kinds) apply uniformly and may change the semantics of some legacy code — authors should expect minor adaptation.
+The Chord compiler aims for broad source-level compatibility with Inform 7 source texts: the natural language surface is a superset of the existing language and the world model preserves equivalent state transitions and rule firings.
+However, enhanced type features (optionals, sum types, parameterized kinds) apply uniformly and may require minor adaptation of legacy code — full backward compatibility is not guaranteed (see §12.1).
 Compatibility is with the *language and world model*, not with the Z-machine, Glulx, Glk, or the Inform 6 intermediate representation.
 These are implementation details of a prior era.
 
@@ -1128,14 +1128,17 @@ These diagnostics align with §10.1 (LSP integration) and C.8 (progressive discl
 
 ## 7. The Compilation Target
 
-### 7.1 WebAssembly as Primary Target
+### 7.1 Compilation Targets
 
-The story file should compile to WebAssembly.
-This provides:
+**Current target: TypeScript / Node.js.** The Phase 0 implementation compiles Chord source to TypeScript that runs on Node.js with libsql for the world model. This is the shipping target today.
+
+**Future target: WebAssembly.** A Wasm compilation target is a design goal that would provide:
 - Browser-native execution with no plugins or interpreters required
 - Near-native performance on all platforms
 - A well-defined sandboxed execution model
 - Access to the broader WebAssembly ecosystem and tooling
+
+The Wasm target is not yet implemented. Resource constraints in §7.4 are specified as design intent for that future phase.
 
 ### 7.2 Direct Compilation
 
