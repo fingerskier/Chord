@@ -32,7 +32,11 @@
       "mcp__claude_ai_Reqall__upsert_record",
       "mcp__plugin_reqall_reqall__upsert_project",
       "mcp__plugin_reqall_reqall__search",
-      "mcp__plugin_reqall_reqall__list_records"
+      "mcp__plugin_reqall_reqall__list_records",
+      "Bash(gh issue:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
