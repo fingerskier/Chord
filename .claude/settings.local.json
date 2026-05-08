@@ -36,7 +36,9 @@
       "Bash(gh issue:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "mcp__plugin_github_github__list_issues",
+      "mcp__plugin_reqall_reqall__get_record"
     ]
   }
 }

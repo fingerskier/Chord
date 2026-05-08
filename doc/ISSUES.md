@@ -262,14 +262,14 @@ Mentioned as an opt-in mode requiring `[continuous-time: enabled]`. No detail on
 clock increment configuration, integration with the tick/turn hierarchy, or how
 continuous-time rules interact with discrete state changes.
 
-### G.15 — Phantom Appendix Sections
+### G.15 — Phantom Appendix Sections ✓ RESOLVED
 
 **SPEC refs:** throughout
-The spec references §C.5 (reactive rule resolution order), §C.6 (save/restore),
-§C.8 (progressive disclosure), §D.1 (reactive rules + temporal state), and §D.5
-(multiplayer) — but these sections were never written into SPEC.md. Some are
-partially addressed by ARCH.md decisions (C.5→D9, C.6→D10) but the spec text
-itself has dangling cross-references.
+**Resolution:** SPEC.md now replaces the dangling appendix-style references with
+concrete in-document section references: §5.4.1 for reactive rule resolution
+order, §5.4 for reactive rule interaction, §1.3.1 for progressive disclosure,
+and §8.4.2 for multiplayer turn resolution. Save/restore is referenced directly
+by its local subsection title instead of a phantom appendix label.
 
 ### G.16 — Formal Grammar ✓ RESOLVED
 
@@ -289,7 +289,7 @@ event queue overflows.
 
 ### G.18 — Multiplayer ✓ PARTIALLY RESOLVED
 
-**SPEC refs:** §8.4, §6.3.4 (D.5 reference), §6.3.5
+**SPEC refs:** §8.4, §6.3.4, §6.3.5
 **Resolution:** SPEC.md §8.4.1–§8.4.4 now specifies: connection model (clients
 assigned player entities), two turn resolution policies (FIFO and simultaneous),
 observer mode, and scope boundary (Chord provides turn semantics; transport/auth
@@ -310,13 +310,14 @@ compatibility is not guaranteed. Both sections use consistent language: "broad
 source-level compatibility" with "minor adaptation" expected. The softened guarantee
 from D7 is reflected in the spec text.
 
-### H.2 — Overloaded "Absent" Semantics
+### H.2 — Overloaded "Absent" Semantics ✓ RESOLVED
 
 **SPEC refs:** §3.3 (three-state model), §3.4.5 (beyond retention depth)
-§3.3 defines "absent" as "the author explicitly said has no X" — a deliberate
-narrative statement. §3.4.5 says history queries beyond retention depth return
-"absent." These are semantically different: one is authorial intent, the other is
-data loss from a sliding window. Reusing the same state conflates them.
+**Resolution:** SPEC.md now distinguishes authorial `absent` from historical
+`not retained`. The three-state present-time model remains valued / absent /
+unknown. Only history queries may yield `not retained`, meaning retention depth
+has discarded the relevant entry. Historical `unknown` remains `unknown`, not
+`absent`.
 
 ### H.3 — Compile-Time Embeddings vs. Runtime Similarity
 
@@ -350,13 +351,11 @@ will be provided at all." A reference CLI reader is a practical necessity.
 brief roadmap summary that explicitly points to the root spec and to `IMPLEMENT.md`
 for detailed phase plans. No overlapping content remains.
 
-### H.7 — "Unknown Never Matches" vs. Reactive Transition Semantics
+### H.7 — "Unknown Never Matches" vs. Reactive Transition Semantics ✓ RESOLVED
 
 **SPEC refs:** §3.3.5, §3.3.9
-§3.3.5 establishes that unknown values never match conditions. §3.3.9 says
-"becomes [condition]" fires when a property transitions from unknown to a
-satisfying value — because the *transition* is what's being tested, not the
-current value alone. This is logically consistent but the interaction is subtle.
-The spec doesn't explicitly reconcile these two rules or explain why they don't
-conflict. An author reading §3.3.5 in isolation would reasonably expect that
-unknown→2 would not fire "becomes less than 3."
+**Resolution:** SPEC.md §3.3.9 and §5.4.1 now explicitly define reactive triggers
+as transition predicates over before/after snapshots. Unknown still never matches
+an ordinary condition. `becomes [condition]` fires only when the condition moves
+from not satisfied to satisfied across the transition, and `stops being
+[condition]` fires on the inverse transition.

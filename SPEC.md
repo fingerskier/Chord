@@ -473,7 +473,7 @@ Each journal entry stores:
 - The rule that caused the change (§5.2 provenance metadata).
 
 If a property changes multiple times within a single turn (for example, during a chain of reactive rules — see §5.4), each intermediate value is recorded as a separate journal entry.
-This is essential for rule debugging and for temporal conditions in reactive rule triggers (D.1).
+This is essential for rule debugging and for temporal conditions in reactive rule triggers (§5.4).
 
 **Journaling relations.**
 Relations can be journaled in the same way:
@@ -577,8 +577,10 @@ These families compose naturally in a story:
 #### 3.4.5 Edge Cases and Interactions
 
 **Beyond retention depth.**
-When a history query reaches beyond the journal's retention depth, the result is absent — not an error.
-This ties into the optional value system (§2.3): an author can test for absence with "if the suspicion of Bob 100 turns ago is absent."
+When a history query reaches beyond the journal's retention depth, the result is not retained — not an error.
+This is distinct from absent: absent means the author explicitly established that no value was present at that time, while not retained means the journal no longer contains evidence for that point in history.
+`not retained` is a history-query result, not a fourth present-time world state alongside valued / absent / unknown.
+An author can test for this explicitly: "if the suspicion of Bob 100 turns ago is not retained."
 For existential queries ("has ever been"), only the retained history is searched.
 A "has ever been" query on a shallow journal may return false even if the condition was once true but has since been discarded.
 
@@ -587,12 +589,12 @@ If an author writes "the previous location of the player" but location is not de
 "The phrase 'the previous location of the player' references history, but 'location' is not a journaled property.
 To journal it, declare: 'The location of a person is a journaled object.'"
 
-**Reactive rule interaction (D.1).**
+**Reactive rule interaction (§5.4).**
 When a reactive rule fires and modifies a journaled property, the intermediate value is recorded in the journal.
 If a chain of reactive rules changes trust from 5 to 2 to 7 to 1, the journal records all four values, each tagged with the rule that caused the change (§5.2 provenance).
 Temporal conditions such as "whether trust was previously below 3" may appear in reactive rule triggers because they reference concrete journaled values, not fuzzy conditions.
 
-**Save and restore (C.6).**
+**Save and restore.**
 The journal is part of the world model's saved state.
 A save operation snapshots the complete journal for all journaled properties.
 A restore operation replaces the current journal with the saved version.
@@ -608,8 +610,8 @@ A property may be both journaled and open-world.
 "Unknown" is a valid historical value — the journal records it like any other state.
 When loyalty transitions from unknown to 2, the journal records the change with "unknown" as the prior state and the rule that caused the establishment as provenance.
 An author can query: "whether the loyalty of Bob has ever been unknown."
-History queries that reach into a period when the property was unknown return unknown (which is absent per §3.4.5 above — not an error).
-This integrates cleanly: "the loyalty of Bob 5 turns ago" returns absent if loyalty was unknown at that time, and the author can test for this with "if the loyalty of Bob 5 turns ago is absent."
+History queries that reach into a period when the property was unknown return unknown — not absent and not an error.
+This integrates cleanly: "the loyalty of Bob 5 turns ago" returns unknown if loyalty was unknown at that time, and the author can test for this with "if the loyalty of Bob 5 turns ago is unknown."
 
 #### 3.4.6 Structured Syntax for Journaling and History
 
@@ -640,10 +642,10 @@ The compiler reports journaling decisions transparently:
 - **Informational:** "The property 'suspicion' of kind 'person' is journaled with depth 10. Values beyond 10 changes will be discarded."
 - **Warning:** "The journaled property 'description' of kind 'thing' is of type text. Large text values may consume significant storage. Consider adding a retention depth."
 - **Error:** "The phrase 'the previous suspicion of Bob' references history, but 'suspicion' is not a journaled property. Declare it as: 'The suspicion of a person is a journaled number.'"
-- **Error:** "The phrase 'the suspicion of Bob 100 turns ago' uses an offset (100) that always exceeds the declared retention depth (10). This query will always return an absent value."
+- **Error:** "The phrase 'the suspicion of Bob 100 turns ago' uses an offset (100) that always exceeds the declared retention depth (10). This query will always return not retained."
 - **Suggestion:** "The property 'mood' is not journaled, but the story queries 'the previous mood of Alice.' Did you mean to declare: 'The mood of a person is a journaled text'?"
 
-These diagnostics align with §10.1 (LSP integration) and the progressive disclosure strategy (C.8) — errors guide the author toward the journaling feature rather than presenting it as an obstacle.
+These diagnostics align with §10.1 (LSP integration) and the progressive disclosure strategy (§1.3.1) — errors guide the author toward the journaling feature rather than presenting it as an obstacle.
 
 ### 3.5 Feature Composition: Integrated Example
 
@@ -853,6 +855,19 @@ When a reactive rule's trigger condition involves an open-world property, the tr
 - **Unknown → unknown:** No reactive rule fires.
   Nothing has changed.
 
+#### 5.4.1 Reactive Rule Resolution Order
+
+Reactive triggers are evaluated over two snapshots of the same state change: the value before the change and the value after it.
+This does not weaken the ordinary condition rule from §3.3.5 — unknown still never matches a condition when either snapshot is evaluated on its own.
+
+A trigger such as `becomes less than 3` fires only when the condition is not satisfied in the pre-change snapshot and satisfied in the post-change snapshot.
+A trigger such as `stops being less than 3` fires on the inverse transition.
+Therefore, unknown → 2 fires `becomes less than 3`, while 2 → unknown fires `stops being less than 3`.
+
+All state changes within a turn are serialized.
+Reactive rules resolve immediately within the current action's processing before the next queued action, tick actor, or multiplayer command begins.
+Within a tick, actor order is deterministic: declaration order by default, unless the author adds explicit ordering constraints such as `Alice acts before Bob.`
+
 ---
 
 ## 6. Time and Scheduling
@@ -968,7 +983,7 @@ The hierarchy is not a nesting of modes but a layering of time sources that the 
 **Interleaving rules:**
 
 1. **The turn loop is the heartbeat.**
-   It advances when the player acts (or, in multiplayer, when all players in a round have acted — see D.5).
+   It advances when the player acts (or, in multiplayer, when all players in a round have acted — see §8.4.2).
 
 2. **The wall clock runs in real time.**
    Clock-scheduled rules fire at their specified intervals via the host environment's event loop, independent of player input.
@@ -982,7 +997,7 @@ The hierarchy is not a nesting of modes but a layering of time sources that the 
    - Explicitly set: "Each turn contains 5 ticks."
 
 4. **The event queue is checked after every state change**, at every layer.
-   A state change during a tick can trigger an event-driven rule immediately (within that tick's processing), following the reactive rule resolution order from C.5.
+   A state change during a tick can trigger an event-driven rule immediately (within that tick's processing), following the reactive rule resolution order from §5.4.1.
 
 #### 6.3.5 The Wall Clock: Real-Time Execution
 
@@ -999,7 +1014,7 @@ Output appears even while the player is idle.
   On restore, the clock resumes from the saved state.
 - **Pause/resume:** the clock pauses when the story is suspended (tab hidden, save menu open, host signals pause) and resumes on return.
   Paused time does not count toward intervals.
-- **Multiplayer (D.5):** clock rules execute authoritatively on the server.
+- **Multiplayer (§8.4.2):** clock rules execute authoritatively on the server.
   Clients receive output via the semantic stream.
 
 **Fallback for constrained environments:**
@@ -1060,7 +1075,7 @@ Alice and Bob are tick-scheduled (the compiler activates ticks because they refe
 The market is turn-scheduled (the default).
 The weather is clock-scheduled.
 
-Actor ordering within a tick follows the deterministic ordering specified in C.5: declaration order by default, overridable by the author:
+Actor ordering within a tick follows the deterministic ordering specified in §5.4.1: declaration order by default, overridable by the author:
 
     Alice acts before Bob.
 
@@ -1122,7 +1137,7 @@ The compiler reports scheduling decisions transparently:
 - **Error:** "The rule 'every 2 minutes and every tick, Alice dances' has conflicting temporal bindings. A rule can be bound to at most one scheduling layer."
 - **Suggestion (on ambiguity):** "The phrase 'every moment, the fire crackles' is ambiguous — does 'moment' mean every turn, every tick, or a clock interval? Please clarify, for example: 'every turn, the fire crackles' or add a structured annotation."
 
-These diagnostics align with §10.1 (LSP integration) and C.8 (progressive disclosure — errors guide rather than confuse).
+These diagnostics align with §10.1 (LSP integration) and §1.3.1 (progressive disclosure — errors guide rather than confuse).
 
 ---
 

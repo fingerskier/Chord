@@ -425,14 +425,14 @@ back to the correct Chord source line.
 | G.12 | 8     | ✓ Resolved  | FFI — SPEC.md §11.2.1–§11.2.5, ARCH.md D12 |
 | G.13 | 8     | Open        | Data import/export |
 | G.14 | 5     | Open        | Continuous time |
-| G.15 | 2, 4  | Open        | Appendix sections filled by implementation |
+| G.15 | 2, 4  | ✓ Resolved  | SPEC.md now uses concrete in-document references (`§5.4.1`, `§1.3.1`, `§8.4.2`) |
 | G.16 | 1     | ✓ Resolved  | Formal grammar — `doc/GRAMMAR.md` |
 | G.17 | 1     | Open        | Error model |
 | G.18 | 8.4   | ✓ Partial   | Multiplayer — SPEC.md §8.4.1–§8.4.4, ARCH.md D14 |
 | H.1  | 1     | ✓ Resolved  | Compatibility language — §1.2 and §12.1 harmonized |
-| H.2  | 2     | Open        | Absent semantics |
+| H.2  | 2     | ✓ Resolved  | Historical `not retained` separated from authorial `absent` |
 | H.3  | 8     | Open        | Embeddings design |
 | H.4  | 1     | ✓ Resolved  | §7.1 acknowledges TS/Node as current, Wasm as future |
 | H.5  | 6     | Open        | Reference reader |
 | H.6  | 1     | ✓ Resolved  | `doc/SPEC.md` subordinated to root spec |
-| H.7  | 2     | Open        | Unknown transition documentation |
+| H.7  | 2     | ✓ Resolved  | Reactive triggers defined as before/after transition predicates |
